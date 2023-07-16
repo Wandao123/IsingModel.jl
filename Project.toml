@@ -1,0 +1,13 @@
+name = "IsingModel"
+uuid = "78af4a4b-7d59-466a-84e2-4f7243ff9da7"
+authors = ["Wandao123 <20665675+Wandao123@users.noreply.github.com>"]
+version = "1.0.0-DEV"
+
+[compat]
+julia = "1"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
