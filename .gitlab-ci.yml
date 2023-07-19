@@ -27,9 +27,10 @@ Julia 1.9:
     - .script
     - .coverage
 pages:
-  image: julia:1.0
+  image: julia:1.9
   stage: deploy
   script:
+    - apt-get update -qq && apt-get install -y git  # needed by Documenter
     - |
       julia --project=docs -e '
         using Pkg
