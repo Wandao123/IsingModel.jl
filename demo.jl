@@ -5,6 +5,10 @@ using Markdown
 using InteractiveUtils
 
 # ╔═╡ 3db0f7f0-26b8-11ee-345a-970b2c1cf2ed
+# Before running this demonstration, install python libraries via REPL:
+# `julia> using Conda`
+# `julia> Conda.add("scipy")`
+# `julia> Conda.add("networkx")`
 # Ref: https://stackoverflow.com/questions/70974016/julia-pluto-cannot-find-dev-installed-package
 begin
 	import Pkg
@@ -14,8 +18,12 @@ begin
 	Pkg.instantiate()
 
 	using IsingModel
+	using Graphs, GraphPlot
 	using LinearAlgebra
+	using PyCall
 	using Random, Distributions
+
+	nx = pyimport("networkx")
 end
 
 # ╔═╡ 9fb8f983-0fae-4fbd-bf6f-3a788323f25f
@@ -25,7 +33,9 @@ const N = 64  # The number of nodes
 # Generate a square lattice with the periodic boundary condition.
 begin
 	sideLength = (Int ∘ ceil ∘ sqrt)(N)
-	adjacencyMatrix = zeros((N, N))
+
+	# Directly making the adjacency matrix
+	#=adjacencyMatrix = zeros((N, N))
 	for i = 0:N-1
 		if i % sideLength < sideLength - 1 && i + 1 < N
 			adjacencyMatrix[i + 1, (i + 1) + 1] = 1
@@ -38,7 +48,13 @@ begin
 			adjacencyMatrix[i % sideLength + 1, i + 1] = 1
 		end
 	end
-	adjacencyMatrix = Symmetric(adjacencyMatrix, :U)
+	adjacencyMatrix = Symmetric(adjacencyMatrix, :U)=#
+
+	display(collect(adjacency_matrix(grid((sideLength, sideLength)))))  # Another way
+
+	G = nx.grid_2d_graph(sideLength, sideLength, periodic=true)
+	nx.set_edge_attributes(G, values=-1, name="weight")
+	adjacencyMatrix = nx.adjacency_matrix(G).todense()
 end
 
 # ╔═╡ 2d3c39e0-c31b-4741-bc85-4d00082f64c4
@@ -54,10 +70,11 @@ spinSystem = SpinSystem(initialConfiguration, adjacencyMatrix, bias)
 begin
 	const initialTemperature = 10.0
 	const finalTemperature = 0.0
+	const maxSteps = 10000
+
 	#algorithm = AsynchronousHopfieldNetwork(deepcopy(spinSystem))
 	algorithm = GlauberDynamics(deepcopy(spinSystem), initialTemperature)
 	#algorithm = MetropolisMethod(deepcopy(spinSystem), initialTemperature)
-	const maxSteps = 10000
 	data = zeros(maxSteps + 1)
 	for n in 0:maxSteps
 		algorithm.temperature = (finalTemperature - initialTemperature) / maxSteps * n + initialTemperature
