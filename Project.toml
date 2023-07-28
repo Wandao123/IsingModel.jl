@@ -4,6 +4,7 @@ authors = ["Wandao123 <20665675+Wandao123@users.noreply.github.com>"]
 version = "1.0.0-DEV"
 
 [deps]
+BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 Conda = "8f4d0f93-b110-5947-807f-2305c1781a2d"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 GraphPlot = "a2cc645c-3eea-5389-862e-a155d0052231"

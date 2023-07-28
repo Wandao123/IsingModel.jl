@@ -1,21 +1,23 @@
 module IsingModel
 
 export SpinSystem
-export calcEnergy
+export getSpinConfiguration, getCouplingCoefficients, getExternalMagneticField
+export calcEnergy, update!
 export AsynchronousHopfieldNetwork
 export GlauberDynamics
 export MetropolisMethod
-export update!
 
 using LinearAlgebra
 using Random, Distributions
 
 @enum IsingSpin DownSpin = -1 UpSpin = +1
 
+# HACK: How to receive SparseMatrixCSC as a couping-coefficients matrix?
+#       "MethodError: no method matching zero(::Type{Any})" is caused if passing without converting one by the `collect` method.
 mutable struct SpinSystem
-    spinConfiguration::Vector{Number}
-    couplingCoefficients::Matrix{AbstractFloat}  # Like an adjacency matrix
-    externalMagneticField::Vector{AbstractFloat}  # Bias on each site
+    spinConfiguration::AbstractVector{Number}
+    couplingCoefficients::AbstractMatrix{Number}  # Like an adjacency matrix
+    externalMagneticField::AbstractVector{Number}  # Bias on each site
 
     function SpinSystem(spinConfiguration, couplingCoefficients, externalMagneticField)
         numNodes = length(spinConfiguration)
@@ -59,6 +61,10 @@ Suppose that any sub-struct of this type has the spinSystem::SpinSystem field.
 """
 abstract type UpdatingAlgorithm end
 
+getSpinConfiguration(s::UpdatingAlgorithm)::AbstractVector{Number} = s.spinSystem.spinConfiguration
+getCouplingCoefficients(s::UpdatingAlgorithm)::AbstractMatrix{AbstractFloat} = s.spinSystem.couplingCoefficients
+getExternalMagneticField(s::UpdatingAlgorithm)::AbstractVector{AbstractFloat} = s.spinSystem.externalMagneticField
+
 function calcEnergy(spinSystem::SpinSystem)::AbstractFloat
     return -0.5 * spinSystem.spinConfiguration' * spinSystem.couplingCoefficients * spinSystem.spinConfiguration
         - spinSystem.externalMagneticField' * spinSystem.spinConfiguration
@@ -66,24 +72,29 @@ end
 
 calcEnergy(s::UpdatingAlgorithm)::AbstractFloat = calcEnergy(s.spinSystem)
 
-function calcLocalMagneticField(spinSystem::SpinSystem)::Vector{AbstractFloat}
+function calcLocalMagneticField(spinSystem::SpinSystem)::AbstractVector{AbstractFloat}
     return spinSystem.couplingCoefficients * spinSystem.spinConfiguration
         + spinSystem.externalMagneticField
 end
 
-calcLocalMagneticField(s::UpdatingAlgorithm)::Vector{AbstractFloat} = calcLocalMagneticField(s.spinSystem)
+function calcLocalMagneticField(spinSystem::SpinSystem, nodeIndex::Int)::AbstractFloat
+    return spinSystem.couplingCoefficients[nodeIndex, :]' * spinSystem.spinConfiguration
+        + spinSystem.externalMagneticField[nodeIndex]
+end
+
+calcLocalMagneticField(s::UpdatingAlgorithm)::AbstractVector{AbstractFloat} = calcLocalMagneticField(s.spinSystem)
+calcLocalMagneticField(s::UpdatingAlgorithm, x::Int)::AbstractFloat = calcLocalMagneticField(s.spinSystem, x)
 
 mutable struct AsynchronousHopfieldNetwork <: UpdatingAlgorithm
     spinSystem::SpinSystem
 end
 
 function update!(s::AsynchronousHopfieldNetwork)
-    x = rand(eachindex(s.spinSystem.spinConfiguration))  # An updated node label
-    s.spinSystem.spinConfiguration[x] = ifelse(
-            # HACK: Should we point out the index x before calculating matrices?
-            (s.spinSystem.couplingCoefficients * s.spinSystem.spinConfiguration
-            - s.spinSystem.externalMagneticField)[x]
-            >= 0,
+    x = rand(eachindex(getSpinConfiguration(s)))  # An updated node label
+    getSpinConfiguration(s)[x] = ifelse(
+            getCouplingCoefficients(s)[x, :]' * getSpinConfiguration(s)
+                - getExternalMagneticField(s)[x]
+                >= 0,
             +1,
             -1
         )
@@ -99,9 +110,9 @@ function update!(s::GlauberDynamics)
         @warn "$temperature is negative."
     end
 
-    x = rand(eachindex(s.spinSystem.spinConfiguration))  # An updated node label
-    s.spinSystem.spinConfiguration[x] = sign(
-            2 * calcLocalMagneticField(s)[x]
+    x = rand(eachindex(getSpinConfiguration(s)))  # An updated node label
+    getSpinConfiguration(s)[x] = sign(
+            2 * calcLocalMagneticField(s, x)
             - rand(Logistic()) * s.temperature
         ) |> Int
 end
@@ -116,10 +127,10 @@ function update!(s::MetropolisMethod)
         @warn "$temperature is negative."
     end
 
-    x = rand(eachindex(s.spinSystem.spinConfiguration))  # An updated node label
-    s.spinSystem.spinConfiguration[x] = sign(
-            2 * calcLocalMagneticField(s)[x]
-            - rand(Exponential()) * s.temperature * s.spinSystem.spinConfiguration[x]
+    x = rand(eachindex(getSpinConfiguration(s)))  # An updated node label
+    getSpinConfiguration(s)[x] = sign(
+            2 * calcLocalMagneticField(s, x)
+            - rand(Exponential()) * s.temperature * getSpinConfiguration(s)[x]
         ) |> Int
 end
 
