@@ -2,7 +2,7 @@ module IsingModel
 
 export SpinSystem
 export getSpinConfiguration, getCouplingCoefficients, getExternalMagneticField
-export calcEnergy, update!
+export calcEnergy, update!, takeSamples!
 export AsynchronousHopfieldNetwork
 export GlauberDynamics
 export MetropolisMethod
@@ -77,20 +77,68 @@ function calcLocalMagneticField(spinSystem::SpinSystem)::AbstractVector{Abstract
         + spinSystem.externalMagneticField
 end
 
-function calcLocalMagneticField(spinSystem::SpinSystem, nodeIndex::Int)::AbstractFloat
+function calcLocalMagneticField(spinSystem::SpinSystem, nodeIndex::Integer)::AbstractFloat
     return spinSystem.couplingCoefficients[nodeIndex, :]' * spinSystem.spinConfiguration
         + spinSystem.externalMagneticField[nodeIndex]
 end
 
 calcLocalMagneticField(s::UpdatingAlgorithm)::AbstractVector{AbstractFloat} = calcLocalMagneticField(s.spinSystem)
-calcLocalMagneticField(s::UpdatingAlgorithm, x::Int)::AbstractFloat = calcLocalMagneticField(s.spinSystem, x)
+calcLocalMagneticField(s::UpdatingAlgorithm, x::Integer)::AbstractFloat = calcLocalMagneticField(s.spinSystem, x)
 
-mutable struct AsynchronousHopfieldNetwork <: UpdatingAlgorithm
+"""
+    update!(s[, x])
+
+Update a spin of `s.spinSystem.spinConfiguration` at a site `x`.
+
+# Arguments
+- `s::T<:UpdatingAlgorithm`: a spin system with parameters.
+- `x::Integer`: an updated node label.
+"""
+update!(s::UpdatingAlgorithm) = nothing
+
+abstract type SingleSpinUpdatingAlgorithm <: UpdatingAlgorithm end
+
+function update!(s::SingleSpinUpdatingAlgorithm)
+    x = rand(eachindex(getSpinConfiguration(s)))
+    update!(s, x)
+end
+
+function takeSamples!(updatingAlgorithm::SingleSpinUpdatingAlgorithm, maxMCSteps::Integer)::Channel{SpinSystem}
+    if maxMCSteps < 0
+        @warn "$maxMCSteps is negative."
+    end
+
+    Channel{SpinSystem}(32) do channel
+        updatedNodes = rand(eachindex(getSpinConfiguration(updatingAlgorithm)), maxMCSteps)
+        put!(channel, updatingAlgorithm.spinSystem)
+        for stepCounter = 1:maxMCSteps
+            update!(updatingAlgorithm, updatedNodes[stepCounter])
+            put!(channel, updatingAlgorithm.spinSystem)
+        end
+    end
+end
+
+function takeSamples!(updatingAlgorithm::SingleSpinUpdatingAlgorithm, maxMCSteps::Integer, annealingSchedule::Function)::Channel{SpinSystem}
+    if maxMCSteps < 0
+        @warn "$maxMCSteps is negative."
+    end
+
+    Channel{SpinSystem}(32) do channel
+        updatedNodes = rand(eachindex(getSpinConfiguration(updatingAlgorithm)), maxMCSteps)
+        put!(channel, updatingAlgorithm.spinSystem)
+        for stepCounter = 1:maxMCSteps
+            updatingAlgorithm.temperature = annealingSchedule(stepCounter)
+            update!(updatingAlgorithm, updatedNodes[stepCounter])
+            put!(channel, updatingAlgorithm.spinSystem)
+        end
+    end
+end
+
+mutable struct AsynchronousHopfieldNetwork <: SingleSpinUpdatingAlgorithm
     spinSystem::SpinSystem
 end
 
-function update!(s::AsynchronousHopfieldNetwork)
-    x = rand(eachindex(getSpinConfiguration(s)))  # An updated node label
+function update!(s::AsynchronousHopfieldNetwork, x::Integer)
     getSpinConfiguration(s)[x] = ifelse(
             getCouplingCoefficients(s)[x, :]' * getSpinConfiguration(s)
                 - getExternalMagneticField(s)[x]
@@ -100,38 +148,38 @@ function update!(s::AsynchronousHopfieldNetwork)
         )
 end
 
-mutable struct GlauberDynamics <: UpdatingAlgorithm
+mutable struct GlauberDynamics <: SingleSpinUpdatingAlgorithm
     spinSystem::SpinSystem
     temperature::AbstractFloat
 end
 
-function update!(s::GlauberDynamics)
+function update!(s::GlauberDynamics, x::Integer)
     if s.temperature < 0
         @warn "$temperature is negative."
     end
 
-    x = rand(eachindex(getSpinConfiguration(s)))  # An updated node label
     getSpinConfiguration(s)[x] = sign(
             2 * calcLocalMagneticField(s, x)
             - rand(Logistic()) * s.temperature
         ) |> Int
 end
 
-mutable struct MetropolisMethod <: UpdatingAlgorithm
+mutable struct MetropolisMethod <: SingleSpinUpdatingAlgorithm
     spinSystem::SpinSystem
     temperature::AbstractFloat
 end
 
-function update!(s::MetropolisMethod)
+function update!(s::MetropolisMethod, x::Integer)
     if s.temperature < 0
         @warn "$temperature is negative."
     end
 
-    x = rand(eachindex(getSpinConfiguration(s)))  # An updated node label
     getSpinConfiguration(s)[x] = sign(
             2 * calcLocalMagneticField(s, x)
             - rand(Exponential()) * s.temperature * getSpinConfiguration(s)[x]
         ) |> Int
 end
+
+abstract type MultiSpinUpdatingAlgorithm <: UpdatingAlgorithm end
 
 end

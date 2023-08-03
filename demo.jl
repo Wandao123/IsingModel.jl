@@ -18,11 +18,17 @@ begin
 	Pkg.instantiate()
 
 	using IsingModel
+	using BenchmarkTools
+	using Conda
 	using Graphs, GraphPlot
 	using LinearAlgebra
 	using PyCall
 	using Random, Distributions
+	using Revise
 
+	# Uncomment the following two lines the first time to run this demonstration.
+	#Conda.add("scipy")
+	#Conda.add("networkx")
 	nx = pyimport("networkx")
 end
 
@@ -66,23 +72,34 @@ const initialConfiguration = 2 .* rand(Bernoulli(0.5), N) .- 1
 # ╔═╡ 9539349c-1cdb-4bc0-8d9e-94406a96e49c
 spinSystem = SpinSystem(initialConfiguration, adjacencyMatrix, bias)
 
-# ╔═╡ cc79b855-1f14-49b0-b115-4fbc7bde505e
+# ╔═╡ 5caf6d8b-8e0a-4e49-9ada-d7a403ca04de
 begin
 	const initialTemperature = 10.0
 	const finalTemperature = 0.0
-	const maxSteps = 10000
+	const maxSteps = N^2
 
+	annealingSchedule(n) = (finalTemperature - initialTemperature) / maxSteps * n + initialTemperature
+end
+
+# ╔═╡ cc79b855-1f14-49b0-b115-4fbc7bde505e
+@benchmark begin
 	#algorithm = AsynchronousHopfieldNetwork(deepcopy(spinSystem))
 	algorithm = GlauberDynamics(deepcopy(spinSystem), initialTemperature)
 	#algorithm = MetropolisMethod(deepcopy(spinSystem), initialTemperature)
 	data = zeros(maxSteps + 1)
 	for n in 0:maxSteps
-		algorithm.temperature = (finalTemperature - initialTemperature) / maxSteps * n + initialTemperature
+		algorithm.temperature = annealingSchedule(n)
 		update!(algorithm)
 		data[n + 1] = calcEnergy(algorithm)
 	end
-	println(algorithm.spinSystem.spinConfiguration)
 	println(data)
+end
+
+# ╔═╡ b14cb2a9-d69f-48eb-a268-6bca0ff91675
+@benchmark begin
+	algorithm = GlauberDynamics(deepcopy(spinSystem), initialTemperature)
+	#algorithm = MetropolisMethod(deepcopy(spinSystem), initialTemperature)
+	println(map(calcEnergy, takeSamples!(algorithm, maxSteps, annealingSchedule)))
 end
 
 # ╔═╡ Cell order:
@@ -92,4 +109,6 @@ end
 # ╠═2d3c39e0-c31b-4741-bc85-4d00082f64c4
 # ╠═1fdecb38-6c88-4c15-bd62-836e77b0170a
 # ╠═9539349c-1cdb-4bc0-8d9e-94406a96e49c
+# ╠═5caf6d8b-8e0a-4e49-9ada-d7a403ca04de
 # ╠═cc79b855-1f14-49b0-b115-4fbc7bde505e
+# ╠═b14cb2a9-d69f-48eb-a268-6bca0ff91675
