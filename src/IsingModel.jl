@@ -12,12 +12,10 @@ using Random, Distributions
 
 @enum IsingSpin DownSpin = -1 UpSpin = +1
 
-# HACK: How to receive SparseMatrixCSC as a couping-coefficients matrix?
-#       "MethodError: no method matching zero(::Type{Any})" is caused if passing without converting one by the `collect` method.
 mutable struct SpinSystem
-    spinConfiguration::AbstractVector{Number}
-    couplingCoefficients::AbstractMatrix{Number}  # Like an adjacency matrix
-    externalMagneticField::AbstractVector{Number}  # Bias on each site
+    spinConfiguration::AbstractVector{<:Number}
+    couplingCoefficients::AbstractMatrix{<:AbstractFloat}  # Like an adjacency matrix
+    externalMagneticField::AbstractVector{<:AbstractFloat}  # Bias on each site
 
     function SpinSystem(spinConfiguration, couplingCoefficients, externalMagneticField)
         numNodes = length(spinConfiguration)
@@ -50,7 +48,7 @@ mutable struct SpinSystem
             @warn "The size of the spin-configuration vector is too bigger than the size of the external-magnetic-field vector.  The incorresponding components of the spin-configuration vector are ignored."
             spinConfiguration = spinConfiguration[1:numBias]
         end
-        return new(spinConfiguration, couplingCoefficients, externalMagneticField)
+        return new(spinConfiguration, float.(couplingCoefficients), float.(externalMagneticField))
     end
 end
 
@@ -103,33 +101,26 @@ function update!(s::SingleSpinUpdatingAlgorithm)
     update!(s, x)
 end
 
-function takeSamples!(updatingAlgorithm::SingleSpinUpdatingAlgorithm, maxMCSteps::Integer)::Channel{SpinSystem}
+function takeSamples!(updatingAlgorithm::SingleSpinUpdatingAlgorithm, maxMCSteps::Integer, annealingSchedule::Function=n -> updatingAlgorithm.temperature)::Channel{UpdatingAlgorithm}
     if maxMCSteps < 0
         @warn "$maxMCSteps is negative."
     end
-
-    Channel{SpinSystem}(32) do channel
-        updatedNodes = rand(eachindex(getSpinConfiguration(updatingAlgorithm)), maxMCSteps)
-        put!(channel, updatingAlgorithm.spinSystem)
-        for stepCounter = 1:maxMCSteps
-            update!(updatingAlgorithm, updatedNodes[stepCounter])
-            put!(channel, updatingAlgorithm.spinSystem)
+    function decreaseTemperature(updatingAlgorithm, stepCounter)
+        if hasproperty(updatingAlgorithm, :temperature)
+            updatingAlgorithm.temperature = annealingSchedule(stepCounter)
+        else
+            nothing
         end
     end
-end
+    updatedNodes = rand(eachindex(getSpinConfiguration(updatingAlgorithm)), maxMCSteps)
 
-function takeSamples!(updatingAlgorithm::SingleSpinUpdatingAlgorithm, maxMCSteps::Integer, annealingSchedule::Function)::Channel{SpinSystem}
-    if maxMCSteps < 0
-        @warn "$maxMCSteps is negative."
-    end
-
-    Channel{SpinSystem}(32) do channel
-        updatedNodes = rand(eachindex(getSpinConfiguration(updatingAlgorithm)), maxMCSteps)
-        put!(channel, updatingAlgorithm.spinSystem)
+    Channel{UpdatingAlgorithm}() do channel
+        put!(channel, updatingAlgorithm)
         for stepCounter = 1:maxMCSteps
-            updatingAlgorithm.temperature = annealingSchedule(stepCounter)
+            decreaseTemperature(updatingAlgorithm, stepCounter)
             update!(updatingAlgorithm, updatedNodes[stepCounter])
-            put!(channel, updatingAlgorithm.spinSystem)
+            put!(channel, updatingAlgorithm)
+            stepCounter += 1
         end
     end
 end
@@ -139,7 +130,7 @@ mutable struct AsynchronousHopfieldNetwork <: SingleSpinUpdatingAlgorithm
 end
 
 function update!(s::AsynchronousHopfieldNetwork, x::Integer)
-    getSpinConfiguration(s)[x] = ifelse(
+    s.spinSystem.spinConfiguration[x] = ifelse(
             getCouplingCoefficients(s)[x, :]' * getSpinConfiguration(s)
                 - getExternalMagneticField(s)[x]
                 >= 0,
@@ -158,7 +149,7 @@ function update!(s::GlauberDynamics, x::Integer)
         @warn "$temperature is negative."
     end
 
-    getSpinConfiguration(s)[x] = sign(
+    s.spinSystem.spinConfiguration[x] = sign(
             2 * calcLocalMagneticField(s, x)
             - rand(Logistic()) * s.temperature
         ) |> Int
@@ -174,7 +165,7 @@ function update!(s::MetropolisMethod, x::Integer)
         @warn "$temperature is negative."
     end
 
-    getSpinConfiguration(s)[x] = sign(
+    s.spinSystem.spinConfiguration[x] = sign(
             2 * calcLocalMagneticField(s, x)
             - rand(Exponential()) * s.temperature * getSpinConfiguration(s)[x]
         ) |> Int

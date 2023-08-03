@@ -25,11 +25,22 @@ begin
 	using PyCall
 	using Random, Distributions
 	using Revise
+	using SparseArrays
 
 	# Uncomment the following two lines the first time to run this demonstration.
 	#Conda.add("scipy")
 	#Conda.add("networkx")
-	nx = pyimport("networkx")
+	const nx = pyimport("networkx")
+end
+
+# ╔═╡ 8c380ce4-4e41-43d9-afb2-e2252f58e5e4
+# Ref: https://github.com/JuliaPy/PyCall.jl/issues/204
+begin
+	const scipy_sparse_find = pyimport("scipy.sparse")["find"]
+	function mysparse(Apy::PyObject)
+		IA, JA, SA = scipy_sparse_find(Apy)
+		return sparse(Int[i+1 for i in IA], Int[i+1 for i in JA], SA)
+	end
 end
 
 # ╔═╡ 9fb8f983-0fae-4fbd-bf6f-3a788323f25f
@@ -38,7 +49,7 @@ const N = 64  # The number of nodes
 # ╔═╡ 3b95e78f-0743-4a3e-b334-2ced85113b89
 # Generate a square lattice with the periodic boundary condition.
 begin
-	sideLength = (Int ∘ ceil ∘ sqrt)(N)
+	const sideLength = (Int ∘ ceil ∘ sqrt)(N)
 
 	# Directly making the adjacency matrix
 	#=adjacencyMatrix = zeros((N, N))
@@ -56,15 +67,15 @@ begin
 	end
 	adjacencyMatrix = Symmetric(adjacencyMatrix, :U)=#
 
-	display(collect(adjacency_matrix(grid((sideLength, sideLength)))))  # Another way
+	display(adjacency_matrix(grid((sideLength, sideLength))))  # Another way
 
 	G = nx.grid_2d_graph(sideLength, sideLength, periodic=true)
 	nx.set_edge_attributes(G, values=-1, name="weight")
-	adjacencyMatrix = nx.adjacency_matrix(G).todense()
+	const adjacencyMatrix = mysparse(nx.adjacency_matrix(G))
 end
 
 # ╔═╡ 2d3c39e0-c31b-4741-bc85-4d00082f64c4
-bias = zeros(N)
+const bias = zeros(N)
 
 # ╔═╡ 1fdecb38-6c88-4c15-bd62-836e77b0170a
 const initialConfiguration = 2 .* rand(Bernoulli(0.5), N) .- 1
@@ -74,41 +85,30 @@ spinSystem = SpinSystem(initialConfiguration, adjacencyMatrix, bias)
 
 # ╔═╡ 5caf6d8b-8e0a-4e49-9ada-d7a403ca04de
 begin
-	const initialTemperature = 10.0
+	const maxSteps = N ^ 2
+	const initialTemperature = float(maxSteps)
 	const finalTemperature = 0.0
-	const maxSteps = N^2
 
-	annealingSchedule(n) = (finalTemperature - initialTemperature) / maxSteps * n + initialTemperature
-end
-
-# ╔═╡ cc79b855-1f14-49b0-b115-4fbc7bde505e
-@benchmark begin
-	#algorithm = AsynchronousHopfieldNetwork(deepcopy(spinSystem))
-	algorithm = GlauberDynamics(deepcopy(spinSystem), initialTemperature)
-	#algorithm = MetropolisMethod(deepcopy(spinSystem), initialTemperature)
-	data = zeros(maxSteps + 1)
-	for n in 0:maxSteps
-		algorithm.temperature = annealingSchedule(n)
-		update!(algorithm)
-		data[n + 1] = calcEnergy(algorithm)
-	end
-	println(data)
+	#annealingSchedule(n) = (finalTemperature - initialTemperature) / maxSteps * n + initialTemperature
+	annealingSchedule(n) = initialTemperature ^ (-n)
 end
 
 # ╔═╡ b14cb2a9-d69f-48eb-a268-6bca0ff91675
 @benchmark begin
+	#algorithm = AsynchronousHopfieldNetwork(deepcopy(spinSystem))
 	algorithm = GlauberDynamics(deepcopy(spinSystem), initialTemperature)
 	#algorithm = MetropolisMethod(deepcopy(spinSystem), initialTemperature)
-	println(map(calcEnergy, takeSamples!(algorithm, maxSteps, annealingSchedule)))
+	data = takeSamples!(algorithm, maxSteps, annealingSchedule)
+	println(map(calcEnergy, data))
 end
 
 # ╔═╡ Cell order:
 # ╠═3db0f7f0-26b8-11ee-345a-970b2c1cf2ed
+# ╠═8c380ce4-4e41-43d9-afb2-e2252f58e5e4
 # ╠═9fb8f983-0fae-4fbd-bf6f-3a788323f25f
 # ╠═3b95e78f-0743-4a3e-b334-2ced85113b89
 # ╠═2d3c39e0-c31b-4741-bc85-4d00082f64c4
 # ╠═1fdecb38-6c88-4c15-bd62-836e77b0170a
 # ╠═9539349c-1cdb-4bc0-8d9e-94406a96e49c
 # ╠═5caf6d8b-8e0a-4e49-9ada-d7a403ca04de
-# ╠═cc79b855-1f14-49b0-b115-4fbc7bde505e
 # ╠═b14cb2a9-d69f-48eb-a268-6bca0ff91675
