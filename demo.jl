@@ -9,6 +9,13 @@ using InteractiveUtils
 # `julia> using Conda`
 # `julia> Conda.add("scipy")`
 # `julia> Conda.add("networkx")`
+# Depending on your OS, you may be required to chenge
+# the path to Python interpreter and build PyCall.
+# `julia> ENV["PYTHON"] = ENV["HOME"] * "/.julia/conda/3/x86_64/bin/python3"`
+# `julia> using Pkg`
+# `julia> Pkg.build("PyCall")`
+# See also https://github.com/JuliaPy/PyCall.jl
+
 # Ref: https://stackoverflow.com/questions/70974016/julia-pluto-cannot-find-dev-installed-package
 begin
 	import Pkg
