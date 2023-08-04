@@ -15,35 +15,19 @@ begin
 
 	using IsingModel
 	using BenchmarkTools
-	using Conda
-	#using Graphs, GraphPlot
+	using Distributions
+	import Graphs
+	using GraphPlot: gplot
 	using LinearAlgebra
-	using Plots
-	using PyCall
-	using Random, Distributions
+	using Plots: plot, plot!
+	using Random
 	using Revise
-	using SparseArrays
-
-	# Uncomment the following two lines the first time to run this demonstration.
-	#Conda.add("scipy")
-	#Conda.add("networkx")
-	const nx = pyimport("networkx")
 end
 
 # ╔═╡ 4f999a32-2d07-45c7-a30f-2f87c65a053a
 md"""
 # Demonstrations
 """
-
-# ╔═╡ 8c380ce4-4e41-43d9-afb2-e2252f58e5e4
-# Ref: https://github.com/JuliaPy/PyCall.jl/issues/204
-begin
-	const scipy_sparse_find = pyimport("scipy.sparse")["find"]
-	function mysparse(Apy::PyObject)
-		IA, JA, SA = scipy_sparse_find(Apy)
-		return sparse(Int[i+1 for i in IA], Int[i+1 for i in JA], SA)
-	end
-end
 
 # ╔═╡ 9fb8f983-0fae-4fbd-bf6f-3a788323f25f
 const N = 64  # The number of nodes
@@ -53,7 +37,7 @@ const N = 64  # The number of nodes
 begin
 	const SIDE_LENGTH = (Int ∘ ceil ∘ sqrt)(N)
 
-	# Directly making the adjacency matrix
+	# A direct way making the adjacency matrix
 	#=adjacencyMatrix = zeros((N, N))
 	for i = 0:N-1
 		if i % SIDE_LENGTH < SIDE_LENGTH - 1 && i + 1 < N
@@ -70,12 +54,14 @@ begin
 	adjacencyMatrix = Symmetric(adjacencyMatrix, :U)=#
 
 	# A way using the Graphs.jl library
-	#adjacencyMatrix = adjacency_matrix(grid((SIDE_LENGTH, SIDE_LENGTH), periodic=true))
-
-	G = nx.grid_2d_graph(SIDE_LENGTH, SIDE_LENGTH, periodic=true)
-	nx.set_edge_attributes(G, values=-1, name="weight")
-	adjacencyMatrix = mysparse(nx.adjacency_matrix(G))
+	G = Graphs.grid((SIDE_LENGTH, SIDE_LENGTH), periodic=true)
+	adjacencyMatrix = map(Graphs.adjacency_matrix(G)) do c
+		ifelse(c == 0, 0, -1)
+	end
 end
+
+# ╔═╡ d956b7b4-1bc2-41c7-95e2-8e8baef41c7f
+gplot(G)
 
 # ╔═╡ 2d3c39e0-c31b-4741-bc85-4d00082f64c4
 bias = zeros(N)
@@ -118,9 +104,9 @@ end
 # ╔═╡ Cell order:
 # ╟─4f999a32-2d07-45c7-a30f-2f87c65a053a
 # ╠═3db0f7f0-26b8-11ee-345a-970b2c1cf2ed
-# ╠═8c380ce4-4e41-43d9-afb2-e2252f58e5e4
 # ╠═9fb8f983-0fae-4fbd-bf6f-3a788323f25f
 # ╠═3b95e78f-0743-4a3e-b334-2ced85113b89
+# ╠═d956b7b4-1bc2-41c7-95e2-8e8baef41c7f
 # ╠═2d3c39e0-c31b-4741-bc85-4d00082f64c4
 # ╠═1fdecb38-6c88-4c15-bd62-836e77b0170a
 # ╠═9539349c-1cdb-4bc0-8d9e-94406a96e49c
