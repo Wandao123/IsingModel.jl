@@ -5,6 +5,15 @@
 [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://Wandao123.github.io/IsingModel.jl/dev)
 [![Build Status](https://github.com/Wandao123/IsingModel.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/Wandao123/IsingModel.jl/actions/workflows/CI.yml?query=branch%3Amain)
 
+## Getting started
+
+### Demonstration
+
+You can see a demonstration in [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/Wandao123/IsingModel.jl/HEAD?labpath=demo.ipynb).
+It may take some time.
+
+### Generating adjacency matrices by Python's NetworkX library
+
 Before running this demonstration, please install python libraries via REPL:
 ```
 julia> using Conda
