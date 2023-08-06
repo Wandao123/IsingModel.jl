@@ -59,9 +59,9 @@ Suppose that any sub-struct of this type has the spinSystem::SpinSystem field.
 """
 abstract type UpdatingAlgorithm end
 
-getSpinConfiguration(s::UpdatingAlgorithm)::AbstractVector{Number} = s.spinSystem.spinConfiguration
-getCouplingCoefficients(s::UpdatingAlgorithm)::AbstractMatrix{AbstractFloat} = s.spinSystem.couplingCoefficients
-getExternalMagneticField(s::UpdatingAlgorithm)::AbstractVector{AbstractFloat} = s.spinSystem.externalMagneticField
+getSpinConfiguration(s::UpdatingAlgorithm)::AbstractVector{<:Number} = s.spinSystem.spinConfiguration
+getCouplingCoefficients(s::UpdatingAlgorithm)::AbstractMatrix{<:AbstractFloat} = s.spinSystem.couplingCoefficients
+getExternalMagneticField(s::UpdatingAlgorithm)::AbstractVector{<:AbstractFloat} = s.spinSystem.externalMagneticField
 
 function calcEnergy(spinSystem::SpinSystem)::AbstractFloat
     return -0.5 * spinSystem.spinConfiguration' * spinSystem.couplingCoefficients * spinSystem.spinConfiguration
@@ -84,24 +84,39 @@ calcLocalMagneticField(s::UpdatingAlgorithm)::AbstractVector{AbstractFloat} = ca
 calcLocalMagneticField(s::UpdatingAlgorithm, x::Integer)::AbstractFloat = calcLocalMagneticField(s.spinSystem, x)
 
 """
-    update!(s[, x])
+    update!(s; [rng=default_rng()])
 
-Update a spin of `s.spinSystem.spinConfiguration` at a site `x`.
+Update a spin of `s.spinSystem.spinConfiguration`.
+`rng` is used to get a random number when the updating algorithm depends on randomness.
 
 # Arguments
 - `s::T<:UpdatingAlgorithm`: a spin system with parameters.
-- `x::Integer`: an updated node label.
+- `rng::AbstractRNG`: a random number generator.
 """
-update!(s::UpdatingAlgorithm) = nothing
+update!(s::UpdatingAlgorithm; rng=Random.default_rng()) = nothing
 
 abstract type SingleSpinUpdatingAlgorithm <: UpdatingAlgorithm end
 
-function update!(s::SingleSpinUpdatingAlgorithm)
-    x = rand(eachindex(getSpinConfiguration(s)))
-    update!(s, x)
+function update!(s::SingleSpinUpdatingAlgorithm; rng=Random.default_rng())
+    updatedNode = rand(rng, eachindex(getSpinConfiguration(s)))
+    fluctuation = rand(rng, s.distribution)
+    update!(s, updatedNode, fluctuation)
 end
 
-function takeSamples!(updatingAlgorithm::SingleSpinUpdatingAlgorithm, maxMCSteps::Integer, annealingSchedule::Function=n -> updatingAlgorithm.temperature)::Channel{UpdatingAlgorithm}
+"""
+    update!(s, updatedNode, fluctuation)
+
+Update a spin of `s.spinSystem.spinConfiguration` at a site `updatedNode`.
+`fluctuation` is used by random updating algorithms.
+
+# Arguments
+- `s::T<:UpdatingAlgorithm`: a spin system with parameters.
+- `updatedNode::Integer`: an updated node label.  The default value is given by `rand(rng, eachindex(s.spinSystem.spinConfiguration))`.
+- `fluctuation::AbstractFloat`: a random number which obeys `s.distribution`.  The default value is given by `rand(rng, s.distribution)`.
+"""
+update!(s::SingleSpinUpdatingAlgorithm, updatedNode::Integer, fluctuation::AbstractFloat) = nothing
+
+function takeSamples!(updatingAlgorithm::SingleSpinUpdatingAlgorithm, maxMCSteps::Integer, annealingSchedule::Function=n -> updatingAlgorithm.temperature; rng=Random.default_rng())::Channel{UpdatingAlgorithm}
     if maxMCSteps < 0
         @warn "$maxMCSteps is negative."
     end
@@ -112,13 +127,14 @@ function takeSamples!(updatingAlgorithm::SingleSpinUpdatingAlgorithm, maxMCSteps
             nothing
         end
     end
-    updatedNodes = rand(eachindex(getSpinConfiguration(updatingAlgorithm)), maxMCSteps)
+    updatedNodes = rand(rng, eachindex(getSpinConfiguration(updatingAlgorithm)), maxMCSteps)
+    fluctuations = rand(rng, updatingAlgorithm.distribution, maxMCSteps)
 
     Channel{UpdatingAlgorithm}() do channel
         put!(channel, updatingAlgorithm)
         for stepCounter = 1:maxMCSteps
             decreaseTemperature(updatingAlgorithm, stepCounter)
-            update!(updatingAlgorithm, updatedNodes[stepCounter])
+            update!(updatingAlgorithm, updatedNodes[stepCounter], fluctuations[stepCounter])
             put!(channel, updatingAlgorithm)
             stepCounter += 1
         end
@@ -127,9 +143,12 @@ end
 
 mutable struct AsynchronousHopfieldNetwork <: SingleSpinUpdatingAlgorithm
     spinSystem::SpinSystem
+    distribution::ContinuousUnivariateDistribution  # dummy
+
+    AsynchronousHopfieldNetwork(spinSystem::SpinSystem) = new(spinSystem, Uniform())
 end
 
-function update!(s::AsynchronousHopfieldNetwork, x::Integer)
+function update!(s::AsynchronousHopfieldNetwork, x::Integer, ::AbstractFloat=0.0)
     s.spinSystem.spinConfiguration[x] = ifelse(
             getCouplingCoefficients(s)[x, :]' * getSpinConfiguration(s)
                 - getExternalMagneticField(s)[x]
@@ -142,32 +161,38 @@ end
 mutable struct GlauberDynamics <: SingleSpinUpdatingAlgorithm
     spinSystem::SpinSystem
     temperature::AbstractFloat
+    distribution::ContinuousUnivariateDistribution
+
+    GlauberDynamics(spinSystem::SpinSystem, temperature::AbstractFloat) = new(spinSystem, temperature, Logistic())
 end
 
-function update!(s::GlauberDynamics, x::Integer)
+function update!(s::GlauberDynamics, updatedNode::Integer, fluctuation::AbstractFloat)
     if s.temperature < 0
         @warn "$temperature is negative."
     end
 
-    s.spinSystem.spinConfiguration[x] = sign(
-            2 * calcLocalMagneticField(s, x)
-            - rand(Logistic()) * s.temperature
+    s.spinSystem.spinConfiguration[updatedNode] = sign(
+            2 * calcLocalMagneticField(s, updatedNode)
+            - fluctuation * s.temperature
         ) |> Int
 end
 
 mutable struct MetropolisMethod <: SingleSpinUpdatingAlgorithm
     spinSystem::SpinSystem
     temperature::AbstractFloat
+    distribution::ContinuousUnivariateDistribution
+
+    MetropolisMethod(spinSystem::SpinSystem, temperature::AbstractFloat) = new(spinSystem, temperature, Exponential())
 end
 
-function update!(s::MetropolisMethod, x::Integer)
+function update!(s::MetropolisMethod, updatedNode::Integer, fluctuation::AbstractFloat)
     if s.temperature < 0
         @warn "$temperature is negative."
     end
 
-    s.spinSystem.spinConfiguration[x] = sign(
-            2 * calcLocalMagneticField(s, x)
-            - rand(Exponential()) * s.temperature * getSpinConfiguration(s)[x]
+    s.spinSystem.spinConfiguration[updatedNode] = sign(
+            2 * calcLocalMagneticField(s, updatedNode)
+            - fluctuation * s.temperature * getSpinConfiguration(s)[updatedNode]
         ) |> Int
 end
 
