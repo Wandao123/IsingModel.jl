@@ -83,9 +83,9 @@ begin
 
 	function runAnnealer(Algorithm::Type{<:IsingModel.UpdatingAlgorithm}, spinSystem::SpinSystem, INITIAL_TEMPERATURE=-1.0)::Vector{Float64}
 	    if INITIAL_TEMPERATURE < 0.0
-	        return map(calcEnergy, takeSamples!(Algorithm(deepcopy(spinSystem)), MAX_STEPS, annealingSchedule))
+	        return map(calcEnergy, makeSampler!(Algorithm(deepcopy(spinSystem)), MAX_STEPS, annealingSchedule=annealingSchedule))
 	    else
-	        return map(calcEnergy, takeSamples!(Algorithm(deepcopy(spinSystem), INITIAL_TEMPERATURE), MAX_STEPS, annealingSchedule))
+	        return map(calcEnergy, makeSampler!(Algorithm(deepcopy(spinSystem), INITIAL_TEMPERATURE), MAX_STEPS, annealingSchedule=annealingSchedule))
     	end
 	end
 end

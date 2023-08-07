@@ -2,10 +2,8 @@ module IsingModel
 
 export SpinSystem
 export getSpinConfiguration, getCouplingCoefficients, getExternalMagneticField
-export calcEnergy, update!, takeSamples!
-export AsynchronousHopfieldNetwork
-export GlauberDynamics
-export MetropolisMethod
+export calcEnergy, update!, makeSampler!
+export AsynchronousHopfieldNetwork, GlauberDynamics, MetropolisMethod
 
 using LinearAlgebra
 using Random, Distributions
@@ -14,7 +12,7 @@ using Random, Distributions
 
 mutable struct SpinSystem
     spinConfiguration::AbstractVector{<:Number}
-    couplingCoefficients::AbstractMatrix{<:AbstractFloat}  # Like an adjacency matrix
+    couplingCoefficients::AbstractMatrix{<:AbstractFloat}  # An weighted adjacency matrix
     externalMagneticField::AbstractVector{<:AbstractFloat}  # Bias on each site
 
     function SpinSystem(spinConfiguration, couplingCoefficients, externalMagneticField)
@@ -83,40 +81,26 @@ end
 calcLocalMagneticField(s::UpdatingAlgorithm)::AbstractVector{AbstractFloat} = calcLocalMagneticField(s.spinSystem)
 calcLocalMagneticField(s::UpdatingAlgorithm, x::Integer)::AbstractFloat = calcLocalMagneticField(s.spinSystem, x)
 
+abstract type SingleSpinUpdatingAlgorithm <: UpdatingAlgorithm end
+
 """
-    update!(s; [rng=default_rng()])
+    update!(s::SingleSpinUpdatingAlgorithm; [rng=default_rng()])
 
 Update a spin of `s.spinSystem.spinConfiguration`.
 `rng` is used to get a random number when the updating algorithm depends on randomness.
+This method forwards `s` to another `update!(s, updatedNode, fluctuation)` method with substituting default values into `updatedNode` and `fluctuation`.
 
 # Arguments
-- `s::T<:UpdatingAlgorithm`: a spin system with parameters.
-- `rng::AbstractRNG`: a random number generator.
+- `s::SingleSpinUpdatingAlgorithm`: A spin system with parameters.
+- `rng::AbstractRNG`: A random number generator.
 """
-update!(s::UpdatingAlgorithm; rng=Random.default_rng()) = nothing
-
-abstract type SingleSpinUpdatingAlgorithm <: UpdatingAlgorithm end
-
-function update!(s::SingleSpinUpdatingAlgorithm; rng=Random.default_rng())
+function update!(s::SingleSpinUpdatingAlgorithm; rng::AbstractRNG=Random.default_rng())
     updatedNode = rand(rng, eachindex(getSpinConfiguration(s)))
     fluctuation = rand(rng, s.distribution)
     update!(s, updatedNode, fluctuation)
 end
 
-"""
-    update!(s, updatedNode, fluctuation)
-
-Update a spin of `s.spinSystem.spinConfiguration` at a site `updatedNode`.
-`fluctuation` is used by random updating algorithms.
-
-# Arguments
-- `s::T<:UpdatingAlgorithm`: a spin system with parameters.
-- `updatedNode::Integer`: an updated node label.  The default value is given by `rand(rng, eachindex(s.spinSystem.spinConfiguration))`.
-- `fluctuation::AbstractFloat`: a random number which obeys `s.distribution`.  The default value is given by `rand(rng, s.distribution)`.
-"""
-update!(s::SingleSpinUpdatingAlgorithm, updatedNode::Integer, fluctuation::AbstractFloat) = nothing
-
-function takeSamples!(updatingAlgorithm::SingleSpinUpdatingAlgorithm, maxMCSteps::Integer, annealingSchedule::Function=n -> updatingAlgorithm.temperature; rng=Random.default_rng())::Channel{UpdatingAlgorithm}
+function makeSampler!(updatingAlgorithm::SingleSpinUpdatingAlgorithm, maxMCSteps::Integer; annealingSchedule::Function=n -> updatingAlgorithm.temperature, rng::AbstractRNG=Random.default_rng())::Channel{UpdatingAlgorithm}
     if maxMCSteps < 0
         @warn "$maxMCSteps is negative."
     end
@@ -136,22 +120,33 @@ function takeSamples!(updatingAlgorithm::SingleSpinUpdatingAlgorithm, maxMCSteps
             decreaseTemperature(updatingAlgorithm, stepCounter)
             update!(updatingAlgorithm, updatedNodes[stepCounter], fluctuations[stepCounter])
             put!(channel, updatingAlgorithm)
-            stepCounter += 1
         end
     end
 end
 
 mutable struct AsynchronousHopfieldNetwork <: SingleSpinUpdatingAlgorithm
     spinSystem::SpinSystem
-    distribution::ContinuousUnivariateDistribution  # dummy
+    distribution::ContinuousUnivariateDistribution  # Dummy
 
     AsynchronousHopfieldNetwork(spinSystem::SpinSystem) = new(spinSystem, Uniform())
 end
 
-function update!(s::AsynchronousHopfieldNetwork, x::Integer, ::AbstractFloat=0.0)
-    s.spinSystem.spinConfiguration[x] = ifelse(
-            getCouplingCoefficients(s)[x, :]' * getSpinConfiguration(s)
-                - getExternalMagneticField(s)[x]
+"""
+    update!(s, updatedNode, fluctuation)
+
+Update a spin of `s.spinSystem.spinConfiguration` at a site `updatedNode`.
+`fluctuation` is used by random updating algorithms.
+When the algorithm is deterministic, it is regarded as a dummy parameter to unify the interface of each algorithm.
+
+# Arguments
+- `s::T <: SingleSpinUpdatingAlgorithm`: A spin system with parameters.
+- `updatedNode::Integer`: An updated node label..
+- `fluctuation::AbstractFloat`: A random number which obeys `s.distribution` (required).
+"""
+function update!(s::AsynchronousHopfieldNetwork, updatedNode::Integer, ::AbstractFloat=0.0)
+    s.spinSystem.spinConfiguration[updatedNode] = ifelse(
+            getCouplingCoefficients(s)[updatedNode, :]' * getSpinConfiguration(s)
+                - getExternalMagneticField(s)[updatedNode]
                 >= 0,
             +1,
             -1
@@ -197,5 +192,47 @@ function update!(s::MetropolisMethod, updatedNode::Integer, fluctuation::Abstrac
 end
 
 abstract type MultiSpinUpdatingAlgorithm <: UpdatingAlgorithm end
+
+"""
+    update!(s::MultiSpinUpdatingAlgorithm; [rng=default_rng()])
+
+Update a spin of `s.spinSystem.spinConfiguration`.
+`rng` is used to get a random number when the updating algorithm depends on randomness.
+This method forwards `s` to another `update!(s, updatedNode, fluctuation)` method with substituting default values into `updatedNode` and `fluctuation`.
+
+# Arguments
+- `s::MultiSpinUpdatingAlgorithm`: A spin system with parameters.
+- `rng::AbstractRNG`: A random number generator.
+"""
+function update!(s::MultiSpinUpdatingAlgorithm; rng::AbstractRNG=Random.default_rng())
+    fluctuation = rand(rng, s.distribution)
+    update!(s, fluctuation)
+end
+
+function makeSampler!(updatingAlgorithm::MultiSpinUpdatingAlgorithm, maxMCSteps::Integer, annealingSchedule::Function=n -> updatingAlgorithm.temperature; rng::AbstractRNG=Random.default_rng())::Channel{UpdatingAlgorithm}
+    if maxMCSteps < 0
+        @warn "$maxMCSteps is negative."
+    end
+    function decreaseTemperature(updatingAlgorithm, stepCounter)
+        if hasproperty(updatingAlgorithm, :temperature)
+            updatingAlgorithm.temperature = annealingSchedule(stepCounter)
+        else
+            nothing
+        end
+    end
+    fluctuations = rand(rng, updatingAlgorithm.distribution, maxMCSteps)
+
+    Channel{UpdatingAlgorithm}() do channel
+        put!(channel, updatingAlgorithm)
+        for stepCounter = 1:maxMCSteps
+            decreaseTemperature(updatingAlgorithm, stepCounter)
+            update!(updatingAlgorithm, fluctuations[stepCounter])
+            put!(channel, updatingAlgorithm)
+        end
+    end
+end
+
+export OnBipartiteGraph
+include("IsingModelOnBipartiteGraph.jl")
 
 end
