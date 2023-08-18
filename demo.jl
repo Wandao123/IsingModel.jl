@@ -14,6 +14,8 @@ begin
 	Pkg.instantiate()
 
 	using IsingModel
+    using IsingModel.SpinSystems: calcEnergy
+    using IsingModel.SamplingHelper: makeSampler!
 	using BenchmarkTools
 	using Distributions
 	import Graphs
@@ -70,35 +72,86 @@ bias = zeros(N)
 const INITIAL_CONFIGURATION = 2 .* rand(Bernoulli(0.5), N) .- 1
 
 # ╔═╡ 9539349c-1cdb-4bc0-8d9e-94406a96e49c
-spinSystem = SpinSystem(INITIAL_CONFIGURATION, adjacencyMatrix, bias)
+begin
+	spinSystem = SpinSystems.SpinSystem(
+		INITIAL_CONFIGURATION,
+		adjacencyMatrix,
+		bias
+	)
+	println("Hamiltonian = $(calcEnergy(spinSystem))")
+	pinningParameter = 0.5 * eigmax(collect(adjacencyMatrix))
+	spinSystemOnBipartiteGraph = SpinSystems.SpinSystemOnBipartiteGraph(
+		INITIAL_CONFIGURATION,
+		INITIAL_CONFIGURATION,
+		0.5 * (adjacencyMatrix + pinningParameter * I),
+		0.5 * bias,
+		0.5 * bias
+	)
+	println("Modified Hamiltonian = $(calcEnergy(spinSystemOnBipartiteGraph) + 0.5 * pinningParameter * N)")
+end
 
 # ╔═╡ 5caf6d8b-8e0a-4e49-9ada-d7a403ca04de
 begin
-	const MAX_STEPS = N ^ 2
-	const INITIAL_TEMPERATURE = float(MAX_STEPS)
+    const MAX_STEPS = N^2 ÷ 2
+    const INITIAL_TEMPERATURE = float(MAX_STEPS)
 	const FINAL_TEMPERATURE = 0.0
 
 	#annealingSchedule(n) = (FINAL_TEMPERATURE - INITIAL_TEMPERATURE) / MAX_STEPS * n + INITIAL_TEMPERATURE
-	annealingSchedule(n) = INITIAL_TEMPERATURE ^ (-n)
+	annealingSchedule(n) = INITIAL_TEMPERATURE ^ (-n / MAX_STEPS)
 
-	function runAnnealer(Algorithm::Type{<:IsingModel.UpdatingAlgorithm}, spinSystem::SpinSystem, INITIAL_TEMPERATURE=-1.0)::Vector{Float64}
-	    if INITIAL_TEMPERATURE < 0.0
-	        return map(calcEnergy, makeSampler!(Algorithm(deepcopy(spinSystem)), MAX_STEPS, annealingSchedule=annealingSchedule))
-	    else
-	        return map(calcEnergy, makeSampler!(Algorithm(deepcopy(spinSystem), INITIAL_TEMPERATURE), MAX_STEPS, annealingSchedule=annealingSchedule))
-    	end
-	end
+    function runAnnealer(
+        Algorithm::Type{<:SpinSystems.UpdatingAlgorithm},
+        spinSystem::SpinSystems.SpinSystem,
+        INITIAL_TEMPERATURE::Float64=-1.0
+    )::Vector{Float64}
+        if INITIAL_TEMPERATURE < 0.0
+            return map(
+				calcEnergy,
+				makeSampler!(
+					Algorithm(deepcopy(spinSystem)),
+					MAX_STEPS,
+					annealingSchedule=annealingSchedule
+				)
+			)
+        else
+            return map(
+				calcEnergy,
+				makeSampler!(
+					Algorithm(deepcopy(spinSystem), INITIAL_TEMPERATURE),
+					MAX_STEPS,
+					annealingSchedule=annealingSchedule
+				)
+			)
+        end
+    end
+
+    function runAnnealer(
+        Algorithm::Type{<:SpinSystems.UpdatingAlgorithmOnBipartiteGraph},
+        spinSystem::SpinSystems.SpinSystemOnBipartiteGraph,
+        INITIAL_TEMPERATURE::Float64=-1.0
+    )::Vector{Float64}
+        return map(
+			a -> calcEnergy(a) + 0.5 * pinningParameter * N,
+			makeSampler!(
+				Algorithm(deepcopy(spinSystem), INITIAL_TEMPERATURE),
+				MAX_STEPS,
+				annealingSchedule=annealingSchedule
+			)
+		)
+    end
 end
 
 # ╔═╡ b14cb2a9-d69f-48eb-a268-6bca0ff91675
-@benchmark runAnnealer(GlauberDynamics, spinSystem, INITIAL_TEMPERATURE)
+@benchmark runAnnealer(SingleSpinFlip.GlauberDynamics, spinSystem, INITIAL_TEMPERATURE)
 
 # ╔═╡ 34e062e0-e878-4f48-a7fd-91009b83be0f
 begin
 	plot(xlabel="MC steps", ylabel="Energy")
-	plot!(runAnnealer(AsynchronousHopfieldNetwork, spinSystem), label="Hopfield")
-	plot!(runAnnealer(GlauberDynamics, spinSystem, INITIAL_TEMPERATURE), label="Glauber")
-	plot!(runAnnealer(MetropolisMethod, spinSystem, INITIAL_TEMPERATURE), label="Metropolis")
+	plot!(runAnnealer(SingleSpinFlip.AsynchronousHopfieldNetwork, spinSystem), label="Hopfield")
+	plot!(runAnnealer(SingleSpinFlip.GlauberDynamics, spinSystem, INITIAL_TEMPERATURE), label="Glauber")
+	plot!(runAnnealer(SingleSpinFlip.MetropolisMethod, spinSystem, INITIAL_TEMPERATURE), label="Metropolis")
+    plot!(runAnnealer(OnBipartiteGraph.StochasticCellularAutomata, spinSystemOnBipartiteGraph, INITIAL_TEMPERATURE), label="SCA")
+    plot!(runAnnealer(OnBipartiteGraph.MomentumAnnealing, spinSystemOnBipartiteGraph, INITIAL_TEMPERATURE), label="MA")
 end
 
 # ╔═╡ Cell order:
