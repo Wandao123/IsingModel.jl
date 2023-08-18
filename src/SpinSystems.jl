@@ -9,6 +9,8 @@ export calcLocalAuxiliaryBias
 
 using LinearAlgebra
 
+################ For general graphs ################
+
 mutable struct SpinSystem
     spinConfiguration::AbstractVector{<:Number}
     couplingCoefficients::AbstractMatrix{<:AbstractFloat}  # An weighted adjacency matrix
@@ -79,6 +81,8 @@ end
 
 calcLocalMagneticField(s::UpdatingAlgorithm)::AbstractVector{AbstractFloat} = calcLocalMagneticField(s.spinSystem)
 calcLocalMagneticField(s::UpdatingAlgorithm, x::Integer)::AbstractFloat = calcLocalMagneticField(s.spinSystem, x)
+
+################ For bipartite graphs ################
 
 mutable struct SpinSystemOnBipartiteGraph
     spinConfiguration::AbstractVector{<:Number}

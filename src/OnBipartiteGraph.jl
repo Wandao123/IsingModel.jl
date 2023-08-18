@@ -7,48 +7,6 @@ using LinearAlgebra
 using Random, Distributions
 using ..SpinSystems
 
-"""
-    update!(s::UpdatingAlgorithmOnBipartiteGraph; [rng=default_rng()])
-
-Update a spin of `s.spinSystem.spinConfiguration`.
-`rng` is used to get a random number when the updating algorithm depends on randomness.
-This method forwards `s` to another `update!(s, updatedNode, fluctuation)` method with substituting default values into `updatedNode` and `fluctuation`.
-
-# Arguments
-- `s::UpdatingAlgorithmOnBipartiteGraph`: A spin system on a bipartite graph with parameters.
-- `rng::AbstractRNG`: A random number generator.
-"""
-function update!(s::UpdatingAlgorithmOnBipartiteGraph; rng::AbstractRNG=Random.default_rng())
-    fluctuationForSpinConfiguration = rand(rng, s.distribution, length(s.spinSystem.spinConfiguration))
-    fluctuationForHiddenLayer = rand(rng, s.distribution, length(s.spinSystem.hiddenLayer))
-    update!(s, fluctuationForSpinConfiguration, fluctuationForHiddenLayer)
-end
-
-function makeSampler!(updatingAlgorithm::UpdatingAlgorithmOnBipartiteGraph, maxMCSteps::Integer; annealingSchedule::Function=n -> updatingAlgorithm.temperature, rng::AbstractRNG=Random.default_rng())::Channel{UpdatingAlgorithmOnBipartiteGraph}
-    if maxMCSteps < 0
-        @warn "$maxMCSteps is negative."
-    end
-    function decreaseTemperature(updatingAlgorithm, stepCounter)
-        if hasproperty(updatingAlgorithm, :temperature)
-            updatingAlgorithm.temperature = annealingSchedule(stepCounter)
-        else
-            nothing
-        end
-    end
-    fluctuationsForSpinConfiguration = rand(rng, updatingAlgorithm.distribution, (length(getSpinConfiguration(updatingAlgorithm)), maxMCSteps))
-    fluctuationsForHiddenLayer = rand(rng, updatingAlgorithm.distribution, (length(getHiddenLayer(updatingAlgorithm)), maxMCSteps))
-
-    Channel{UpdatingAlgorithmOnBipartiteGraph}() do channel
-        decreaseTemperature(updatingAlgorithm, 0)
-        put!(channel, updatingAlgorithm)
-        for stepCounter = 1:maxMCSteps
-            decreaseTemperature(updatingAlgorithm, stepCounter)
-            update!(updatingAlgorithm, fluctuationsForSpinConfiguration[:, stepCounter], fluctuationsForHiddenLayer[:, stepCounter])
-            put!(channel, updatingAlgorithm)
-        end
-    end
-end
-
 mutable struct StochasticCellularAutomata <: UpdatingAlgorithmOnBipartiteGraph
     spinSystem::SpinSystemOnBipartiteGraph
     temperature::AbstractFloat

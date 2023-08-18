@@ -1,6 +1,6 @@
 module SingleSpinFlip
 
-export update!, makeSampler!
+export update!
 export AsynchronousHopfieldNetwork, GlauberDynamics, MetropolisMethod
 
 using LinearAlgebra
@@ -8,48 +8,6 @@ using Random, Distributions
 using ..SpinSystems
 
 abstract type SingleSpinUpdatingAlgorithm <: UpdatingAlgorithm end
-
-"""
-    update!(s::SingleSpinUpdatingAlgorithm; [rng=default_rng()])
-
-Update a spin of `s.spinSystem.spinConfiguration`.
-`rng` is used to get a random number when the updating algorithm depends on randomness.
-This method forwards `s` to another `update!(s, updatedNode, fluctuation)` method with substituting default values into `updatedNode` and `fluctuation`.
-
-# Arguments
-- `s::SingleSpinUpdatingAlgorithm`: A spin system with parameters.
-- `rng::AbstractRNG`: A random number generator.
-"""
-function update!(s::SingleSpinUpdatingAlgorithm; rng::AbstractRNG=Random.default_rng())
-    updatedNode = rand(rng, eachindex(getSpinConfiguration(s)))
-    fluctuation = rand(rng, s.distribution)
-    update!(s, updatedNode, fluctuation)
-end
-
-function makeSampler!(updatingAlgorithm::SingleSpinUpdatingAlgorithm, maxMCSteps::Integer; annealingSchedule::Function=n -> updatingAlgorithm.temperature, rng::AbstractRNG=Random.default_rng())::Channel{UpdatingAlgorithm}
-    if maxMCSteps < 0
-        @warn "$maxMCSteps is negative."
-    end
-    function decreaseTemperature(updatingAlgorithm, stepCounter)
-        if hasproperty(updatingAlgorithm, :temperature)
-            updatingAlgorithm.temperature = annealingSchedule(stepCounter)
-        else
-            nothing
-        end
-    end
-    updatedNodes = rand(rng, eachindex(getSpinConfiguration(updatingAlgorithm)), maxMCSteps)
-    fluctuations = rand(rng, updatingAlgorithm.distribution, maxMCSteps)
-
-    Channel{UpdatingAlgorithm}() do channel
-        decreaseTemperature(updatingAlgorithm, 0)
-        put!(channel, updatingAlgorithm)
-        for stepCounter = 1:maxMCSteps
-            decreaseTemperature(updatingAlgorithm, stepCounter)
-            update!(updatingAlgorithm, updatedNodes[stepCounter], fluctuations[stepCounter])
-            put!(channel, updatingAlgorithm)
-        end
-    end
-end
 
 mutable struct AsynchronousHopfieldNetwork <: SingleSpinUpdatingAlgorithm
     spinSystem::SpinSystem
