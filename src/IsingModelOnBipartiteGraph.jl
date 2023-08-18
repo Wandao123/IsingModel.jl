@@ -11,7 +11,7 @@ using Random, Distributions
 mutable struct SpinSystemOnBipartiteGraph
     spinConfiguration::AbstractVector{<:Number}
     hiddenLayer::AbstractVector{<:Number}
-    couplingCoefficients::AbstractMatrix{<:AbstractFloat}  # An weighted adjacency matrix
+    couplingCoefficients::AbstractMatrix{<:AbstractFloat}  # An weighted adjacency matrix with shape [# of visible nodes] × [# of hidden nodes]
     externalMagneticField::AbstractVector{<:AbstractFloat}
     auxiliaryBias::AbstractVector{<:AbstractFloat}
 
@@ -19,35 +19,22 @@ mutable struct SpinSystemOnBipartiteGraph
         numVisibleNodes = length(spinConfiguration)
         numHiddenNodes = length(hiddenLayer)
         (row, column) = size(couplingCoefficients)
-        #=if row != column
-            error("The coupling-coefficient matrix is not a square matrix: $(row)rows ≠ $(column)columns.")
+        if row != numVisibleNodes
+            error("The size of the coupling-coefficient matrix does not match the number of visible and hidden nodes: $(numVisibleNodes)nodes ≠ $(row)rows.")
             return nothing
-        elseif numNodes < row
-            @warn "The size of the spin-configuration vector is too smaller than the size of the coupling-coefficient matrix.  The incorresponding components of the coupling-coefficient matrix are ignored."
-            couplingCoefficients = couplingCoefficients[1:numNodes, 1:numNodes]
-        elseif numNodes > row
-            @warn "The size of the spin-configuration vector is too bigger than the size of the coupling-coefficient matrix.  The incorresponding components of the spin-configuration vector are ignored."
-            spinConfiguration = spinConfiguration[1:row]
-        elseif !issymmetric(couplingCoefficients)
-            @warn "The coupling-coefficient matrix should be symmetric.  It is symmetrized by its upper-triangular components automatically."
-            couplingCoefficients = Symmetric(couplingCoefficients, :U)
+        elseif column != numHiddenNodes
+            error("The size of the coupling-coefficient matrix does not match the number of visible and hidden nodes: $(numHiddenNodes)nodes ≠ $(column)columns.")
+            return nothing
         end
-        if any(diag(couplingCoefficients) .!= 0)
-            @warn "The diagonal components of the coupling-coefficient matrix should be zero.  Their non-zero components are ignored."
-            couplingCoefficients -= Diagonal(couplingCoefficients)
-        end=#
         numFields = length(externalMagneticField)
         numBias = length(auxiliaryBias)
-        #=if row != numBias
-            error("The size of the coupling-coefficient matrix does not match the size of the external-magnetic-field vector: $(row) ≠ $(numBias).")
+        if numFields != numVisibleNodes
+            error("The size of the external-magnetic-field vector does not match the number of visible nodes: $(numFields) ≠ $(numVisibleNodes).")
             return nothing
-        elseif numNodes < numBias
-            @warn "The size of the spin-configuration vector is too smaller than the size of the external-magnetic-field vector.  The incorresponding components of the external-magnetic-field vector are ignored."
-            externalMagneticField = externalMagneticField[1:numNodes]
-        elseif numNodes > numBias
-            @warn "The size of the spin-configuration vector is too bigger than the size of the external-magnetic-field vector.  The incorresponding components of the spin-configuration vector are ignored."
-            spinConfiguration = spinConfiguration[1:numBias]
-        end=#
+        elseif numBias != numHiddenNodes
+            error("The size of the eauxiliary-bias vector does not match the number of hidden nodes: $(numBias) ≠ $(numHiddenNodes).")
+            return nothing
+        end
         return new(spinConfiguration, hiddenLayer, float.(couplingCoefficients), float.(externalMagneticField), float.(auxiliaryBias))
     end
 end
