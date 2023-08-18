@@ -22,7 +22,7 @@ This method forwards `s` to another `update!(s, updatedNode, fluctuation)` metho
 function update!(s::SingleSpinFlip.SingleSpinUpdatingAlgorithm; rng::AbstractRNG=Random.default_rng())
     updatedNode = rand(rng, eachindex(getSpinConfiguration(s)))
     fluctuation = rand(rng, s.distribution)
-    update!(s, updatedNode, fluctuation)
+    SingleSpinFlip.update!(s, updatedNode, fluctuation)
 end
 
 function makeSampler!(updatingAlgorithm::SingleSpinFlip.SingleSpinUpdatingAlgorithm, maxMCSteps::Integer; annealingSchedule::Function=n -> updatingAlgorithm.temperature, rng::AbstractRNG=Random.default_rng())::Channel{SpinSystems.UpdatingAlgorithm}
@@ -63,7 +63,7 @@ This method forwards `s` to another `update!(s, updatedNode, fluctuation)` metho
 """
 function update!(s::MultiSpinFlip.MultiSpinUpdatingAlgorithm; rng::AbstractRNG=Random.default_rng())
     fluctuation = rand(rng, s.distribution)
-    update!(s, fluctuation)
+    MultiSpinFlip.update!(s, fluctuation)
 end
 
 function makeSampler!(updatingAlgorithm::MultiSpinFlip.MultiSpinUpdatingAlgorithm, maxMCSteps::Integer, annealingSchedule::Function=n -> updatingAlgorithm.temperature; rng::AbstractRNG=Random.default_rng())::Channel{SpinSystems.UpdatingAlgorithm}
@@ -104,7 +104,7 @@ This method forwards `s` to another `update!(s, updatedNode, fluctuation)` metho
 function update!(s::OnBipartiteGraph.UpdatingAlgorithmOnBipartiteGraph; rng::AbstractRNG=Random.default_rng())
     fluctuationForSpinConfiguration = rand(rng, s.distribution, length(s.spinSystem.spinConfiguration))
     fluctuationForHiddenLayer = rand(rng, s.distribution, length(s.spinSystem.hiddenLayer))
-    update!(s, fluctuationForSpinConfiguration, fluctuationForHiddenLayer)
+    OnBipartiteGraph.update!(s, fluctuationForSpinConfiguration, fluctuationForHiddenLayer)
 end
 
 function makeSampler!(updatingAlgorithm::OnBipartiteGraph.UpdatingAlgorithmOnBipartiteGraph, maxMCSteps::Integer; annealingSchedule::Function=n -> updatingAlgorithm.temperature, rng::AbstractRNG=Random.default_rng())::Channel{SpinSystems.UpdatingAlgorithmOnBipartiteGraph}

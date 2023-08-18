@@ -42,4 +42,27 @@ function update!(s::StochasticCellularAutomata, fluctuationForSpinConfiguration:
         )
 end
 
+mutable struct MomentumAnnealing <: UpdatingAlgorithmOnBipartiteGraph
+    spinSystem::SpinSystemOnBipartiteGraph
+    temperature::AbstractFloat
+    distribution::ContinuousUnivariateDistribution
+
+    MomentumAnnealing(spinSystem::SpinSystemOnBipartiteGraph, temperature::AbstractFloat) = new(spinSystem, temperature, Exponential())
+end
+
+function update!(s::MomentumAnnealing, fluctuationForSpinConfiguration::AbstractVector{<:AbstractFloat}, fluctuationForHiddenLayer::AbstractVector{<:AbstractFloat})
+    if s.temperature < 0
+        @warn "$temperature is negative."
+    end
+
+    s.spinSystem.hiddenLayer = (Int ∘ sign).(
+            2 * calcLocalAuxiliaryBias(s)
+            - fluctuationForHiddenLayer * s.temperature .* getHiddenLayer(s)
+        )
+    s.spinSystem.spinConfiguration = (Int ∘ sign).(
+            2 * calcLocalMagneticField(s)
+            - fluctuationForSpinConfiguration * s.temperature .* getSpinConfiguration(s)
+        )
+end
+
 end

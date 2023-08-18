@@ -51,8 +51,7 @@ function update!(s::GlauberDynamics, updatedNode::Integer, fluctuation::Abstract
 
     s.spinSystem.spinConfiguration[updatedNode] = sign(
         2 * calcLocalMagneticField(s, updatedNode)
-        -
-        fluctuation * s.temperature
+        - fluctuation * s.temperature
     ) |> Int
 end
 
@@ -71,8 +70,7 @@ function update!(s::MetropolisMethod, updatedNode::Integer, fluctuation::Abstrac
 
     s.spinSystem.spinConfiguration[updatedNode] = sign(
         2 * calcLocalMagneticField(s, updatedNode)
-        -
-        fluctuation * s.temperature * getSpinConfiguration(s)[updatedNode]
+        - fluctuation * s.temperature * getSpinConfiguration(s)[updatedNode]
     ) |> Int
 end
 

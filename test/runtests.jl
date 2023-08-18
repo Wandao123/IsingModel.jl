@@ -12,6 +12,7 @@ function runAnnealer(updatingAlgorithm)
         result = take!(sampler)
         println(result)  # "Channel is closed" exception occurs if commenting out this line.
     end
+    SamplingHelper.update!(updatingAlgorithm)
     return result.spinSystem.spinConfiguration
 end
 
@@ -27,4 +28,5 @@ end
     s = OnBipartiteGraph.SpinSystemOnBipartiteGraph([-1, +1], [-1, +1, -1], sparse([1 1 1; 1 1 1]), [0, 0], [0, 0, 0])
     @test OnBipartiteGraph.calcEnergy(s) == 0.0
     @test runAnnealer(OnBipartiteGraph.StochasticCellularAutomata(deepcopy(s), 10.0)) == [1, 1]
+    @test runAnnealer(OnBipartiteGraph.MomentumAnnealing(deepcopy(s), 10.0)) == [1, 1]
 end
