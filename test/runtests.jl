@@ -16,11 +16,11 @@ function runAnnealer(updatingAlgorithm, makeSampler!)
 end
 
 @testset "SingleSpinFlip" begin
-    s = SpinSystem([-1, +1], sparse([0 1; 1 0]), [0, 0])
-    @test calcEnergy(s) == 1.0
-    @test runAnnealer(AsynchronousHopfieldNetwork(deepcopy(s)), makeSampler!) == [1, 1]
-    @test runAnnealer(GlauberDynamics(deepcopy(s), 10.0), makeSampler!) == [1, 1]
-    @test runAnnealer(MetropolisMethod(deepcopy(s), 10.0), makeSampler!) == [1, 1]
+    s = SpinSystems.SpinSystem([-1, +1], sparse([0 1; 1 0]), [0, 0])
+    @test SpinSystems.calcEnergy(s) == 1.0
+    @test runAnnealer(SingleSpinFlip.AsynchronousHopfieldNetwork(deepcopy(s)), SingleSpinFlip.makeSampler!) == [1, 1]
+    @test runAnnealer(SingleSpinFlip.GlauberDynamics(deepcopy(s), 10.0), SingleSpinFlip.makeSampler!) == [1, 1]
+    @test runAnnealer(SingleSpinFlip.MetropolisMethod(deepcopy(s), 10.0), SingleSpinFlip.makeSampler!) == [1, 1]
 end
 
 @testset "OnBipartiteGraph" begin

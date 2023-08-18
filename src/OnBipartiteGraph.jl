@@ -1,78 +1,11 @@
 module OnBipartiteGraph
 
-export SpinSystemOnBipartiteGraph
-export getSpinConfiguration, getHiddenLayer, getCouplingCoefficients, getExternalMagneticField, getAuxiliaryBias
-export calcEnergy, update!, makeSampler!
+export update!, makeSampler!
 export StochasticCellularAutomata
 
 using LinearAlgebra
 using Random, Distributions
-
-mutable struct SpinSystemOnBipartiteGraph
-    spinConfiguration::AbstractVector{<:Number}
-    hiddenLayer::AbstractVector{<:Number}
-    couplingCoefficients::AbstractMatrix{<:AbstractFloat}  # An weighted adjacency matrix with shape [# of visible nodes] × [# of hidden nodes]
-    externalMagneticField::AbstractVector{<:AbstractFloat}
-    auxiliaryBias::AbstractVector{<:AbstractFloat}
-
-    function SpinSystemOnBipartiteGraph(spinConfiguration, hiddenLayer, couplingCoefficients, externalMagneticField, auxiliaryBias)
-        numVisibleNodes = length(spinConfiguration)
-        numHiddenNodes = length(hiddenLayer)
-        (row, column) = size(couplingCoefficients)
-        if row != numVisibleNodes
-            error("The size of the coupling-coefficient matrix does not match the number of visible and hidden nodes: $(numVisibleNodes)nodes ≠ $(row)rows.")
-            return nothing
-        elseif column != numHiddenNodes
-            error("The size of the coupling-coefficient matrix does not match the number of visible and hidden nodes: $(numHiddenNodes)nodes ≠ $(column)columns.")
-            return nothing
-        end
-        numFields = length(externalMagneticField)
-        numBias = length(auxiliaryBias)
-        if numFields != numVisibleNodes
-            error("The size of the external-magnetic-field vector does not match the number of visible nodes: $(numFields) ≠ $(numVisibleNodes).")
-            return nothing
-        elseif numBias != numHiddenNodes
-            error("The size of the eauxiliary-bias vector does not match the number of hidden nodes: $(numBias) ≠ $(numHiddenNodes).")
-            return nothing
-        end
-        return new(spinConfiguration, hiddenLayer, float.(couplingCoefficients), float.(externalMagneticField), float.(auxiliaryBias))
-    end
-end
-
-"""
-    UpdatingAlgorithmOnBipartiteGraph
-
-Suppose that any sub-struct of this type has the spinSystem::SpinSystemOnBipartiteGraph field.
-"""
-abstract type UpdatingAlgorithmOnBipartiteGraph end
-
-getSpinConfiguration(s::UpdatingAlgorithmOnBipartiteGraph)::AbstractVector{<:Number} = s.spinSystem.spinConfiguration
-getHiddenLayer(s::UpdatingAlgorithmOnBipartiteGraph)::AbstractVector{<:Number} = s.spinSystem.hiddenLayer
-getCouplingCoefficients(s::UpdatingAlgorithmOnBipartiteGraph)::AbstractMatrix{<:AbstractFloat} = s.spinSystem.couplingCoefficients
-getExternalMagneticField(s::UpdatingAlgorithmOnBipartiteGraph)::AbstractVector{<:AbstractFloat} = s.spinSystem.externalMagneticField
-getAuxiliaryBias(s::UpdatingAlgorithmOnBipartiteGraph)::AbstractVector{<:AbstractFloat} = s.spinSystem.auxiliaryBias
-
-function calcEnergy(spinSystem::SpinSystemOnBipartiteGraph)::AbstractFloat
-    return -spinSystem.spinConfiguration' * spinSystem.couplingCoefficients * spinSystem.hiddenLayer
-        - spinSystem.externalMagneticField' * spinSystem.spinConfiguration
-        - spinSystem.auxiliaryBias' * spinSystem.hiddenLayer
-end
-
-calcEnergy(s::UpdatingAlgorithmOnBipartiteGraph)::AbstractFloat = calcEnergy(s.spinSystem)
-
-function calcLocalMagneticField(spinSystem::SpinSystemOnBipartiteGraph)::AbstractVector{AbstractFloat}
-    return spinSystem.couplingCoefficients * spinSystem.hiddenLayer
-        + spinSystem.externalMagneticField
-end
-
-calcLocalMagneticField(s::UpdatingAlgorithmOnBipartiteGraph)::AbstractVector{AbstractFloat} = calcLocalMagneticField(s.spinSystem)
-
-function calcLocalAuxiliaryBias(spinSystem::SpinSystemOnBipartiteGraph)::AbstractVector{AbstractFloat}
-    return spinSystem.couplingCoefficients' * spinSystem.spinConfiguration
-        + spinSystem.auxiliaryBias
-end
-
-calcLocalAuxiliaryBias(s::UpdatingAlgorithmOnBipartiteGraph)::AbstractVector{AbstractFloat} = calcLocalAuxiliaryBias(s.spinSystem)
+using ..SpinSystems
 
 """
     update!(s::UpdatingAlgorithmOnBipartiteGraph; [rng=default_rng()])
@@ -106,6 +39,7 @@ function makeSampler!(updatingAlgorithm::UpdatingAlgorithmOnBipartiteGraph, maxM
     fluctuationsForHiddenLayer = rand(rng, updatingAlgorithm.distribution, (length(getHiddenLayer(updatingAlgorithm)), maxMCSteps))
 
     Channel{UpdatingAlgorithmOnBipartiteGraph}() do channel
+        decreaseTemperature(updatingAlgorithm, 0)
         put!(channel, updatingAlgorithm)
         for stepCounter = 1:maxMCSteps
             decreaseTemperature(updatingAlgorithm, stepCounter)
