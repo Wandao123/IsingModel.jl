@@ -1,6 +1,6 @@
 name = "IsingModel"
 uuid = "78af4a4b-7d59-466a-84e2-4f7243ff9da7"
-authors = ["Wandao123 <20665675+Wandao123@users.noreply.github.com>"]
+authors = ["Wandao123"]
 version = "1.0.0-DEV"
 
 [deps]
@@ -8,6 +8,7 @@ BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 Conda = "8f4d0f93-b110-5947-807f-2305c1781a2d"
 Coverage = "a2441757-f6aa-5fb2-8edb-039e3f45d037"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 DocumenterTools = "35a29f4d-8980-5a13-9543-d66fff28ecb8"
 GraphPlot = "a2cc645c-3eea-5389-862e-a155d0052231"
 Graphs = "86223c79-3864-5bf0-83f7-82e725a168b6"
