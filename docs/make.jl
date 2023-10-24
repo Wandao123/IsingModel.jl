@@ -5,7 +5,7 @@ DocMeta.setdocmeta!(IsingModel, :DocTestSetup, :(using IsingModel); recursive=tr
 
 makedocs(;
     modules=[IsingModel],
-    authors="Wandao123",
+    authors="Wandao123 <20665675+Wandao123@users.noreply.github.com>",
     repo="https://github.com/Wandao123/IsingModel.jl/blob/{commit}{path}#{line}",
     sitename="IsingModel.jl",
     format=Documenter.HTML(;
@@ -17,4 +17,9 @@ makedocs(;
     pages=[
         "Home" => "index.md",
     ],
+)
+
+deploydocs(;
+    repo="github.com/Wandao123/IsingModel.jl",
+    devbranch="main",
 )
