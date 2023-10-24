@@ -34,9 +34,11 @@ jobs:
       - uses: julia-actions/cache@v1
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
-      - uses: julia-actions/julia-uploadcoveralls@v1
-        env:
-          COVERALLS_TOKEN: ${{ secrets.COVERALLS_TOKEN }}
+      #- run: julia --code-coverage test/runtests.jl
+      - uses: julia-actions/julia-processcoverage@v1
+      - uses: codecov/codecov-action@v3
+        with:
+          files: lcov.info
   docs:
     name: Documentation
     runs-on: ubuntu-latest
@@ -61,6 +63,6 @@ jobs:
       - run: |
           julia --project=docs -e '
             using Documenter: DocMeta, doctest
-            using TestProject
-            DocMeta.setdocmeta!(TestProject, :DocTestSetup, :(using TestProject); recursive=true)
-            doctest(TestProject)'
+            using IsingModel
+            DocMeta.setdocmeta!(IsingModel, :DocTestSetup, :(using IsingModel); recursive=true)
+            doctest(IsingModel)'
