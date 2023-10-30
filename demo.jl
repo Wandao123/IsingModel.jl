@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.27
+# v0.19.30
 
 using Markdown
 using InteractiveUtils
@@ -21,7 +21,7 @@ begin
 	import Graphs
 	using GraphPlot: gplot
 	using LinearAlgebra
-	using Plots: plot, plot!
+	using Plots: histogram, plot, plot!
 	using Random
 	using Revise
 end
@@ -32,7 +32,7 @@ md"""
 """
 
 # ╔═╡ 9fb8f983-0fae-4fbd-bf6f-3a788323f25f
-const N = 64  # The number of nodes
+const N = 9  # The number of nodes
 
 # ╔═╡ 3b95e78f-0743-4a3e-b334-2ced85113b89
 # Generate a square lattice with the periodic boundary condition.
@@ -154,6 +154,21 @@ begin
     plot!(runAnnealer(OnBipartiteGraph.MomentumAnnealing, spinSystemOnBipartiteGraph, INITIAL_TEMPERATURE), label="MA")
 end
 
+# ╔═╡ eb0ec036-1315-4c36-b0e2-55e60081e2c5
+begin
+	histogram(
+		map(
+			(binary -> parse(Int, binary, base=2))
+				∘ join
+				∘ (spin -> (1 .- spin) .÷ 2) 
+				∘ SpinSystems.getSpinConfiguration,
+			makeSampler!(SingleSpinFlip.GlauberDynamics(spinSystem, N / 4), 50000)
+		),
+		normalize=:pdf
+	)
+	plot!(xlabel="Spin configuration", ylabel="Frequency")
+end
+
 # ╔═╡ Cell order:
 # ╟─4f999a32-2d07-45c7-a30f-2f87c65a053a
 # ╠═3db0f7f0-26b8-11ee-345a-970b2c1cf2ed
@@ -166,3 +181,4 @@ end
 # ╠═5caf6d8b-8e0a-4e49-9ada-d7a403ca04de
 # ╠═b14cb2a9-d69f-48eb-a268-6bca0ff91675
 # ╠═34e062e0-e878-4f48-a7fd-91009b83be0f
+# ╠═eb0ec036-1315-4c36-b0e2-55e60081e2c5
