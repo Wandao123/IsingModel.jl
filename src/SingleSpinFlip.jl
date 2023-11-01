@@ -7,8 +7,6 @@ using LinearAlgebra
 using Random, Distributions
 using ..SpinSystems
 
-H1(ua::UpdatingAlgorithm, weight::AbstractFloat) = convert(eltype(getSpinConfiguration(ua)), SpinSystems.heaviside(weight))
-
 abstract type SingleSpinUpdatingAlgorithm <: UpdatingAlgorithm end
 
 mutable struct AsynchronousHopfieldNetwork <: SingleSpinUpdatingAlgorithm
@@ -31,8 +29,7 @@ When the algorithm is deterministic, it is regarded as a dummy parameter to unif
 - `fluctuation::AbstractFloat`: A random number which obeys `ua.distribution` (required).
 """
 function update!(ua::AsynchronousHopfieldNetwork, updatedNode::Integer, ::AbstractFloat=0.0)
-    ua.spinSystem.spinConfiguration[updatedNode] = 2 * H1(
-        ua,
+    ua.spinSystem.spinConfiguration[updatedNode] = 2 * SpinSystems.heaviside(
         getCouplingCoefficients(ua)[updatedNode, :]' * getSpinConfiguration(ua)
         - getExternalMagneticField(ua)[updatedNode]
     ) - 1
@@ -51,8 +48,7 @@ function update!(ua::GlauberDynamics, updatedNode::Integer, fluctuation::Abstrac
         @warn "$temperature is negative."
     end
 
-    ua.spinSystem.spinConfiguration[updatedNode] = 2 * H1(
-        ua,
+    ua.spinSystem.spinConfiguration[updatedNode] = 2 * SpinSystems.heaviside(
         2 * calcLocalMagneticField(ua, updatedNode)
         - fluctuation * ua.temperature
     ) - 1
@@ -71,8 +67,7 @@ function update!(ua::MetropolisMethod, updatedNode::Integer, fluctuation::Abstra
         @warn "$temperature is negative."
     end
 
-    ua.spinSystem.spinConfiguration[updatedNode] = 2 * H1(
-        ua,
+    ua.spinSystem.spinConfiguration[updatedNode] = 2 * SpinSystems.heaviside(
         2 * calcLocalMagneticField(ua, updatedNode)
         - fluctuation * ua.temperature * getSpinConfiguration(ua)[updatedNode]
     ) - 1

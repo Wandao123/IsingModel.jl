@@ -7,9 +7,6 @@ using LinearAlgebra
 using Random, Distributions
 using ..SpinSystems
 
-H1sc(ua::UpdatingAlgorithmOnBipartiteGraph, weight::AbstractVector{<:AbstractFloat}) = convert(typeof(getSpinConfiguration(ua)), SpinSystems.heaviside.(weight))
-H1hl(ua::UpdatingAlgorithmOnBipartiteGraph, weight::AbstractVector{<:AbstractFloat}) = convert(typeof(getHiddenLayer(ua)), SpinSystems.heaviside.(weight))
-
 mutable struct StochasticCellularAutomata <: UpdatingAlgorithmOnBipartiteGraph
     spinSystem::SpinSystemOnBipartiteGraph
     temperature::AbstractFloat
@@ -35,13 +32,11 @@ function update!(ua::StochasticCellularAutomata, fluctuationForSpinConfiguration
         @warn "$temperature is negative."
     end
 
-    ua.spinSystem.hiddenLayer = 2 * H1hl(
-        ua,
+    ua.spinSystem.hiddenLayer = 2 * SpinSystems.heaviside.(
         2 * calcLocalAuxiliaryBias(ua)
         - fluctuationForHiddenLayer * ua.temperature
     ) .- 1
-    ua.spinSystem.spinConfiguration = 2 * H1sc(
-        ua,
+    ua.spinSystem.spinConfiguration = 2 * SpinSystems.heaviside.(
         2 * calcLocalMagneticField(ua)
         - fluctuationForSpinConfiguration * ua.temperature
     ) .- 1
@@ -60,13 +55,11 @@ function update!(ua::MomentumAnnealing, fluctuationForSpinConfiguration::Abstrac
         @warn "$temperature is negative."
     end
 
-    ua.spinSystem.hiddenLayer = 2 * H1hl(
-        ua,
+    ua.spinSystem.hiddenLayer = 2 * SpinSystems.heaviside.(
         2 * calcLocalAuxiliaryBias(ua)
         - fluctuationForHiddenLayer * ua.temperature .* getHiddenLayer(ua)
     ) .- 1
-    ua.spinSystem.spinConfiguration = 2 * H1sc(
-        ua,
+    ua.spinSystem.spinConfiguration = 2 * SpinSystems.heaviside.(
         2 * calcLocalMagneticField(ua)
         - fluctuationForSpinConfiguration * ua.temperature .* getSpinConfiguration(ua)
     ) .- 1
