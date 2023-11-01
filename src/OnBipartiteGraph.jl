@@ -33,13 +33,13 @@ function update!(s::StochasticCellularAutomata, fluctuationForSpinConfiguration:
     end
 
     s.spinSystem.hiddenLayer = (Int ∘ sign).(
-            2 * calcLocalAuxiliaryBias(s)
-            - fluctuationForHiddenLayer * s.temperature
-        )
+        2 * calcLocalAuxiliaryBias(s)
+        - fluctuationForHiddenLayer * s.temperature
+    )
     s.spinSystem.spinConfiguration = (Int ∘ sign).(
-            2 * calcLocalMagneticField(s)
-            - fluctuationForSpinConfiguration * s.temperature
-        )
+        2 * calcLocalMagneticField(s)
+        - fluctuationForSpinConfiguration * s.temperature
+    )
 end
 
 mutable struct MomentumAnnealing <: UpdatingAlgorithmOnBipartiteGraph
@@ -56,13 +56,13 @@ function update!(s::MomentumAnnealing, fluctuationForSpinConfiguration::Abstract
     end
 
     s.spinSystem.hiddenLayer = (Int ∘ sign).(
-            2 * calcLocalAuxiliaryBias(s)
-            - fluctuationForHiddenLayer * s.temperature .* getHiddenLayer(s)
-        )
+        2 * calcLocalAuxiliaryBias(s)
+        - fluctuationForHiddenLayer * s.temperature .* getHiddenLayer(s)
+    )
     s.spinSystem.spinConfiguration = (Int ∘ sign).(
-            2 * calcLocalMagneticField(s)
-            - fluctuationForSpinConfiguration * s.temperature .* getSpinConfiguration(s)
-        )
+        2 * calcLocalMagneticField(s)
+        - fluctuationForSpinConfiguration * s.temperature .* getSpinConfiguration(s)
+    )
 end
 
 end

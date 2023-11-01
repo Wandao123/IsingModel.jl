@@ -59,24 +59,27 @@ Suppose that any sub-struct of this type has the spinSystem::SpinSystem field.
 abstract type UpdatingAlgorithm end
 
 getSpinConfiguration(s::UpdatingAlgorithm)::AbstractVector{<:Number} = s.spinSystem.spinConfiguration
+setSpinConfiguration(s::UpdatingAlgorithm, spinConfiguration::AbstractVector{<:Number}) = (s.spinSystem.spinConfiguration = spinConfiguration)
 getCouplingCoefficients(s::UpdatingAlgorithm)::AbstractMatrix{<:AbstractFloat} = s.spinSystem.couplingCoefficients
+setCouplingCoefficients(s::UpdatingAlgorithm, couplingCoefficient::AbstractMatrix{<:AbstractFloat}) = (s.spinSystem.couplingCoefficients = couplingCoefficient)
 getExternalMagneticField(s::UpdatingAlgorithm)::AbstractVector{<:AbstractFloat} = s.spinSystem.externalMagneticField
+setExternalMagneticField(s::UpdatingAlgorithm, externalMagneticField::AbstractVector{<:AbstractFloat}) = (s.spinSystem.externalMagneticField = externalMagneticField)
 
 function calcEnergy(spinSystem::SpinSystem)::AbstractFloat
     return -0.5 * spinSystem.spinConfiguration' * spinSystem.couplingCoefficients * spinSystem.spinConfiguration
-    -spinSystem.externalMagneticField' * spinSystem.spinConfiguration
+        - spinSystem.externalMagneticField' * spinSystem.spinConfiguration
 end
 
 calcEnergy(s::UpdatingAlgorithm)::AbstractFloat = calcEnergy(s.spinSystem)
 
 function calcLocalMagneticField(spinSystem::SpinSystem)::AbstractVector{AbstractFloat}
     return spinSystem.couplingCoefficients * spinSystem.spinConfiguration
-    +spinSystem.externalMagneticField
+        + spinSystem.externalMagneticField
 end
 
 function calcLocalMagneticField(spinSystem::SpinSystem, nodeIndex::Integer)::AbstractFloat
     return spinSystem.couplingCoefficients[nodeIndex, :]' * spinSystem.spinConfiguration
-    +spinSystem.externalMagneticField[nodeIndex]
+        + spinSystem.externalMagneticField[nodeIndex]
 end
 
 calcLocalMagneticField(s::UpdatingAlgorithm)::AbstractVector{AbstractFloat} = calcLocalMagneticField(s.spinSystem)
@@ -123,10 +126,15 @@ Suppose that any sub-struct of this type has the spinSystem::SpinSystemOnBiparti
 abstract type UpdatingAlgorithmOnBipartiteGraph end
 
 getSpinConfiguration(s::UpdatingAlgorithmOnBipartiteGraph)::AbstractVector{<:Number} = s.spinSystem.spinConfiguration
+setSpinConfiguration(s::UpdatingAlgorithmOnBipartiteGraph, spinConfiguration::AbstractVector{<:Number}) = (s.spinSystem.spinConfiguration = spinConfiguration)
 getHiddenLayer(s::UpdatingAlgorithmOnBipartiteGraph)::AbstractVector{<:Number} = s.spinSystem.hiddenLayer
+setHiddenLayer(s::UpdatingAlgorithmOnBipartiteGraph, hiddenLayer::AbstractVector{<:Number}) = (s.spinSystem.hiddenLayer = hiddenLayer)
 getCouplingCoefficients(s::UpdatingAlgorithmOnBipartiteGraph)::AbstractMatrix{<:AbstractFloat} = s.spinSystem.couplingCoefficients
+setCouplingCoefficients(s::UpdatingAlgorithmOnBipartiteGraph, couplingCoefficients::AbstractMatrix{<:AbstractFloat}) = (s.spinSystem.couplingCoefficients = couplingCoefficients)
 getExternalMagneticField(s::UpdatingAlgorithmOnBipartiteGraph)::AbstractVector{<:AbstractFloat} = s.spinSystem.externalMagneticField
+setExternalMagneticField(s::UpdatingAlgorithmOnBipartiteGraph, externalMagneticField::AbstractVector{<:AbstractFloat}) = (s.spinSystem.externalMagneticField = externalMagneticField)
 getAuxiliaryBias(s::UpdatingAlgorithmOnBipartiteGraph)::AbstractVector{<:AbstractFloat} = s.spinSystem.auxiliaryBias
+setAuxiliaryBias(s::UpdatingAlgorithmOnBipartiteGraph, auxiliaryBias::AbstractVector{<:AbstractFloat}) = (s.spinSystem.auxiliaryBias = auxiliaryBias)
 
 function calcEnergy(spinSystem::SpinSystemOnBipartiteGraph)::AbstractFloat
     return -spinSystem.spinConfiguration' * spinSystem.couplingCoefficients * spinSystem.hiddenLayer
