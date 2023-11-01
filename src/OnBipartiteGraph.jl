@@ -7,6 +7,9 @@ using LinearAlgebra
 using Random, Distributions
 using ..SpinSystems
 
+H1sc(ua::UpdatingAlgorithmOnBipartiteGraph, weight::AbstractVector{<:AbstractFloat}) = convert(typeof(getSpinConfiguration(ua)), SpinSystems.heaviside.(weight))
+H1hl(ua::UpdatingAlgorithmOnBipartiteGraph, weight::AbstractVector{<:AbstractFloat}) = convert(typeof(getHiddenLayer(ua)), SpinSystems.heaviside.(weight))
+
 mutable struct StochasticCellularAutomata <: UpdatingAlgorithmOnBipartiteGraph
     spinSystem::SpinSystemOnBipartiteGraph
     temperature::AbstractFloat
@@ -16,30 +19,32 @@ mutable struct StochasticCellularAutomata <: UpdatingAlgorithmOnBipartiteGraph
 end
 
 """
-    update!(s, fluctuationForSpinConfiguration, fluctuationForHiddenLayer)
+    update!(ua, fluctuationForSpinConfiguration, fluctuationForHiddenLayer)
 
-Update a spin of `s.spinSystem.spinConfiguration`.
+Update a spin of `ua.spinSystem.spinConfiguration`.
 `fluctuationForSpinConfiguration` and `fluctuationForHiddenLayer` are used by random updating algorithms.
 When the algorithm is deterministic, they are regarded as a dummy parameter to unify the interface of each algorithm.
 
 # Arguments
-- `s::T <: UpdatingAlgorithmOnBipartiteGraph`: A spin system on a bipartite graph with parameters.
-- `fluctuationForSpinConfiguration::AbstractVector{AbstractFloat}`: A random vector whose each component obeys `s.distribution` (required).  Its size must be the same as `s.spinConfiguration`.
-- `fluctuationForHiddenLayer::AbstractVector{AbstractFloat}`: A random vector whose each component obeys `s.distribution` (required).  Its size must be the same as `s.hiddenLayer`.
+- `ua::T <: UpdatingAlgorithmOnBipartiteGraph`: A spin system on a bipartite graph with parameters.
+- `fluctuationForSpinConfiguration::AbstractVector{AbstractFloat}`: A random vector whose each component obeys `ua.distribution` (required).  Its size must be the same as `ua.spinConfiguration`.
+- `fluctuationForHiddenLayer::AbstractVector{AbstractFloat}`: A random vector whose each component obeys `ua.distribution` (required).  Its size must be the same as `ua.hiddenLayer`.
 """
-function update!(s::StochasticCellularAutomata, fluctuationForSpinConfiguration::AbstractVector{<:AbstractFloat}, fluctuationForHiddenLayer::AbstractVector{<:AbstractFloat})
-    if s.temperature < 0
+function update!(ua::StochasticCellularAutomata, fluctuationForSpinConfiguration::AbstractVector{<:AbstractFloat}, fluctuationForHiddenLayer::AbstractVector{<:AbstractFloat})
+    if ua.temperature < 0
         @warn "$temperature is negative."
     end
 
-    s.spinSystem.hiddenLayer = (Int ∘ sign).(
-        2 * calcLocalAuxiliaryBias(s)
-        - fluctuationForHiddenLayer * s.temperature
-    )
-    s.spinSystem.spinConfiguration = (Int ∘ sign).(
-        2 * calcLocalMagneticField(s)
-        - fluctuationForSpinConfiguration * s.temperature
-    )
+    ua.spinSystem.hiddenLayer = 2 * H1hl(
+        ua,
+        2 * calcLocalAuxiliaryBias(ua)
+        - fluctuationForHiddenLayer * ua.temperature
+    ) .- 1
+    ua.spinSystem.spinConfiguration = 2 * H1sc(
+        ua,
+        2 * calcLocalMagneticField(ua)
+        - fluctuationForSpinConfiguration * ua.temperature
+    ) .- 1
 end
 
 mutable struct MomentumAnnealing <: UpdatingAlgorithmOnBipartiteGraph
@@ -50,19 +55,21 @@ mutable struct MomentumAnnealing <: UpdatingAlgorithmOnBipartiteGraph
     MomentumAnnealing(spinSystem::SpinSystemOnBipartiteGraph, temperature::AbstractFloat) = new(spinSystem, temperature, Exponential())
 end
 
-function update!(s::MomentumAnnealing, fluctuationForSpinConfiguration::AbstractVector{<:AbstractFloat}, fluctuationForHiddenLayer::AbstractVector{<:AbstractFloat})
-    if s.temperature < 0
+function update!(ua::MomentumAnnealing, fluctuationForSpinConfiguration::AbstractVector{<:AbstractFloat}, fluctuationForHiddenLayer::AbstractVector{<:AbstractFloat})
+    if ua.temperature < 0
         @warn "$temperature is negative."
     end
 
-    s.spinSystem.hiddenLayer = (Int ∘ sign).(
-        2 * calcLocalAuxiliaryBias(s)
-        - fluctuationForHiddenLayer * s.temperature .* getHiddenLayer(s)
-    )
-    s.spinSystem.spinConfiguration = (Int ∘ sign).(
-        2 * calcLocalMagneticField(s)
-        - fluctuationForSpinConfiguration * s.temperature .* getSpinConfiguration(s)
-    )
+    ua.spinSystem.hiddenLayer = 2 * H1hl(
+        ua,
+        2 * calcLocalAuxiliaryBias(ua)
+        - fluctuationForHiddenLayer * ua.temperature .* getHiddenLayer(ua)
+    ) .- 1
+    ua.spinSystem.spinConfiguration = 2 * H1sc(
+        ua,
+        2 * calcLocalMagneticField(ua)
+        - fluctuationForSpinConfiguration * ua.temperature .* getSpinConfiguration(ua)
+    ) .- 1
 end
 
 end

@@ -7,6 +7,8 @@ using LinearAlgebra
 using Random, Distributions
 using ..SpinSystems
 
+H1(ua::UpdatingAlgorithm, weight::AbstractFloat) = convert(eltype(getSpinConfiguration(ua)), SpinSystems.heaviside(weight))
+
 abstract type SingleSpinUpdatingAlgorithm <: UpdatingAlgorithm end
 
 mutable struct AsynchronousHopfieldNetwork <: SingleSpinUpdatingAlgorithm
@@ -17,23 +19,23 @@ mutable struct AsynchronousHopfieldNetwork <: SingleSpinUpdatingAlgorithm
 end
 
 """
-    update!(s, updatedNode, fluctuation)
+    update!(ua, updatedNode, fluctuation)
 
-Update a spin of `s.spinSystem.spinConfiguration` at a site `updatedNode`.
+Update a spin of `ua.spinSystem.spinConfiguration` at a site `updatedNode`.
 `fluctuation` is used by random updating algorithms.
 When the algorithm is deterministic, it is regarded as a dummy parameter to unify the interface of each algorithm.
 
 # Arguments
-- `s::T <: SingleSpinUpdatingAlgorithm`: A spin system with parameters.
+- `ua::T <: SingleSpinUpdatingAlgorithm`: A spin system with parameters.
 - `updatedNode::Integer`: An updated node label..
-- `fluctuation::AbstractFloat`: A random number which obeys `s.distribution` (required).
+- `fluctuation::AbstractFloat`: A random number which obeys `ua.distribution` (required).
 """
-function update!(s::AsynchronousHopfieldNetwork, updatedNode::Integer, ::AbstractFloat=0.0)
-    s.spinSystem.spinConfiguration[updatedNode] = ifelse(
-        getCouplingCoefficients(s)[updatedNode, :]' * getSpinConfiguration(s) - getExternalMagneticField(s)[updatedNode] >= 0,
-        +1,
-        -1
-    )
+function update!(ua::AsynchronousHopfieldNetwork, updatedNode::Integer, ::AbstractFloat=0.0)
+    ua.spinSystem.spinConfiguration[updatedNode] = 2 * H1(
+        ua,
+        getCouplingCoefficients(ua)[updatedNode, :]' * getSpinConfiguration(ua)
+        - getExternalMagneticField(ua)[updatedNode]
+    ) - 1
 end
 
 mutable struct GlauberDynamics <: SingleSpinUpdatingAlgorithm
@@ -44,15 +46,16 @@ mutable struct GlauberDynamics <: SingleSpinUpdatingAlgorithm
     GlauberDynamics(spinSystem::SpinSystem, temperature::AbstractFloat) = new(spinSystem, temperature, Logistic())
 end
 
-function update!(s::GlauberDynamics, updatedNode::Integer, fluctuation::AbstractFloat)
-    if s.temperature < 0
+function update!(ua::GlauberDynamics, updatedNode::Integer, fluctuation::AbstractFloat)
+    if ua.temperature < 0
         @warn "$temperature is negative."
     end
 
-    s.spinSystem.spinConfiguration[updatedNode] = sign(
-        2 * calcLocalMagneticField(s, updatedNode)
-        - fluctuation * s.temperature
-    ) |> Int
+    ua.spinSystem.spinConfiguration[updatedNode] = 2 * H1(
+        ua,
+        2 * calcLocalMagneticField(ua, updatedNode)
+        - fluctuation * ua.temperature
+    ) - 1
 end
 
 mutable struct MetropolisMethod <: SingleSpinUpdatingAlgorithm
@@ -63,15 +66,16 @@ mutable struct MetropolisMethod <: SingleSpinUpdatingAlgorithm
     MetropolisMethod(spinSystem::SpinSystem, temperature::AbstractFloat) = new(spinSystem, temperature, Exponential())
 end
 
-function update!(s::MetropolisMethod, updatedNode::Integer, fluctuation::AbstractFloat)
-    if s.temperature < 0
+function update!(ua::MetropolisMethod, updatedNode::Integer, fluctuation::AbstractFloat)
+    if ua.temperature < 0
         @warn "$temperature is negative."
     end
 
-    s.spinSystem.spinConfiguration[updatedNode] = sign(
-        2 * calcLocalMagneticField(s, updatedNode)
-        - fluctuation * s.temperature * getSpinConfiguration(s)[updatedNode]
-    ) |> Int
+    ua.spinSystem.spinConfiguration[updatedNode] = 2 * H1(
+        ua,
+        2 * calcLocalMagneticField(ua, updatedNode)
+        - fluctuation * ua.temperature * getSpinConfiguration(ua)[updatedNode]
+    ) - 1
 end
 
 end

@@ -58,19 +58,19 @@ Suppose that any sub-struct of this type has the spinSystem::SpinSystem field.
 """
 abstract type UpdatingAlgorithm end
 
-getSpinConfiguration(s::UpdatingAlgorithm)::AbstractVector{<:Number} = s.spinSystem.spinConfiguration
-setSpinConfiguration(s::UpdatingAlgorithm, spinConfiguration::AbstractVector{<:Number}) = (s.spinSystem.spinConfiguration = spinConfiguration)
-getCouplingCoefficients(s::UpdatingAlgorithm)::AbstractMatrix{<:AbstractFloat} = s.spinSystem.couplingCoefficients
-setCouplingCoefficients(s::UpdatingAlgorithm, couplingCoefficient::AbstractMatrix{<:AbstractFloat}) = (s.spinSystem.couplingCoefficients = couplingCoefficient)
-getExternalMagneticField(s::UpdatingAlgorithm)::AbstractVector{<:AbstractFloat} = s.spinSystem.externalMagneticField
-setExternalMagneticField(s::UpdatingAlgorithm, externalMagneticField::AbstractVector{<:AbstractFloat}) = (s.spinSystem.externalMagneticField = externalMagneticField)
+getSpinConfiguration(ua::UpdatingAlgorithm)::AbstractVector{<:Number} = ua.spinSystem.spinConfiguration
+setSpinConfiguration(ua::UpdatingAlgorithm, spinConfiguration::AbstractVector{<:Number}) = (ua.spinSystem.spinConfiguration = spinConfiguration)
+getCouplingCoefficients(ua::UpdatingAlgorithm)::AbstractMatrix{<:AbstractFloat} = ua.spinSystem.couplingCoefficients
+setCouplingCoefficients(ua::UpdatingAlgorithm, couplingCoefficient::AbstractMatrix{<:AbstractFloat}) = (ua.spinSystem.couplingCoefficients = couplingCoefficient)
+getExternalMagneticField(ua::UpdatingAlgorithm)::AbstractVector{<:AbstractFloat} = ua.spinSystem.externalMagneticField
+setExternalMagneticField(ua::UpdatingAlgorithm, externalMagneticField::AbstractVector{<:AbstractFloat}) = (ua.spinSystem.externalMagneticField = externalMagneticField)
 
 function calcEnergy(spinSystem::SpinSystem)::AbstractFloat
     return -0.5 * spinSystem.spinConfiguration' * spinSystem.couplingCoefficients * spinSystem.spinConfiguration
         - spinSystem.externalMagneticField' * spinSystem.spinConfiguration
 end
 
-calcEnergy(s::UpdatingAlgorithm)::AbstractFloat = calcEnergy(s.spinSystem)
+calcEnergy(ua::UpdatingAlgorithm)::AbstractFloat = calcEnergy(ua.spinSystem)
 
 function calcLocalMagneticField(spinSystem::SpinSystem)::AbstractVector{AbstractFloat}
     return spinSystem.couplingCoefficients * spinSystem.spinConfiguration
@@ -82,8 +82,8 @@ function calcLocalMagneticField(spinSystem::SpinSystem, nodeIndex::Integer)::Abs
         + spinSystem.externalMagneticField[nodeIndex]
 end
 
-calcLocalMagneticField(s::UpdatingAlgorithm)::AbstractVector{AbstractFloat} = calcLocalMagneticField(s.spinSystem)
-calcLocalMagneticField(s::UpdatingAlgorithm, x::Integer)::AbstractFloat = calcLocalMagneticField(s.spinSystem, x)
+calcLocalMagneticField(ua::UpdatingAlgorithm)::AbstractVector{AbstractFloat} = calcLocalMagneticField(ua.spinSystem)
+calcLocalMagneticField(ua::UpdatingAlgorithm, x::Integer)::AbstractFloat = calcLocalMagneticField(ua.spinSystem, x)
 
 ################ For bipartite graphs ################
 
@@ -125,16 +125,16 @@ Suppose that any sub-struct of this type has the spinSystem::SpinSystemOnBiparti
 """
 abstract type UpdatingAlgorithmOnBipartiteGraph end
 
-getSpinConfiguration(s::UpdatingAlgorithmOnBipartiteGraph)::AbstractVector{<:Number} = s.spinSystem.spinConfiguration
-setSpinConfiguration(s::UpdatingAlgorithmOnBipartiteGraph, spinConfiguration::AbstractVector{<:Number}) = (s.spinSystem.spinConfiguration = spinConfiguration)
-getHiddenLayer(s::UpdatingAlgorithmOnBipartiteGraph)::AbstractVector{<:Number} = s.spinSystem.hiddenLayer
-setHiddenLayer(s::UpdatingAlgorithmOnBipartiteGraph, hiddenLayer::AbstractVector{<:Number}) = (s.spinSystem.hiddenLayer = hiddenLayer)
-getCouplingCoefficients(s::UpdatingAlgorithmOnBipartiteGraph)::AbstractMatrix{<:AbstractFloat} = s.spinSystem.couplingCoefficients
-setCouplingCoefficients(s::UpdatingAlgorithmOnBipartiteGraph, couplingCoefficients::AbstractMatrix{<:AbstractFloat}) = (s.spinSystem.couplingCoefficients = couplingCoefficients)
-getExternalMagneticField(s::UpdatingAlgorithmOnBipartiteGraph)::AbstractVector{<:AbstractFloat} = s.spinSystem.externalMagneticField
-setExternalMagneticField(s::UpdatingAlgorithmOnBipartiteGraph, externalMagneticField::AbstractVector{<:AbstractFloat}) = (s.spinSystem.externalMagneticField = externalMagneticField)
-getAuxiliaryBias(s::UpdatingAlgorithmOnBipartiteGraph)::AbstractVector{<:AbstractFloat} = s.spinSystem.auxiliaryBias
-setAuxiliaryBias(s::UpdatingAlgorithmOnBipartiteGraph, auxiliaryBias::AbstractVector{<:AbstractFloat}) = (s.spinSystem.auxiliaryBias = auxiliaryBias)
+getSpinConfiguration(ua::UpdatingAlgorithmOnBipartiteGraph)::AbstractVector{<:Number} = ua.spinSystem.spinConfiguration
+setSpinConfiguration(ua::UpdatingAlgorithmOnBipartiteGraph, spinConfiguration::AbstractVector{<:Number}) = (ua.spinSystem.spinConfiguration = spinConfiguration)
+getHiddenLayer(ua::UpdatingAlgorithmOnBipartiteGraph)::AbstractVector{<:Number} = ua.spinSystem.hiddenLayer
+setHiddenLayer(ua::UpdatingAlgorithmOnBipartiteGraph, hiddenLayer::AbstractVector{<:Number}) = (ua.spinSystem.hiddenLayer = hiddenLayer)
+getCouplingCoefficients(ua::UpdatingAlgorithmOnBipartiteGraph)::AbstractMatrix{<:AbstractFloat} = ua.spinSystem.couplingCoefficients
+setCouplingCoefficients(ua::UpdatingAlgorithmOnBipartiteGraph, couplingCoefficients::AbstractMatrix{<:AbstractFloat}) = (ua.spinSystem.couplingCoefficients = couplingCoefficients)
+getExternalMagneticField(ua::UpdatingAlgorithmOnBipartiteGraph)::AbstractVector{<:AbstractFloat} = ua.spinSystem.externalMagneticField
+setExternalMagneticField(ua::UpdatingAlgorithmOnBipartiteGraph, externalMagneticField::AbstractVector{<:AbstractFloat}) = (ua.spinSystem.externalMagneticField = externalMagneticField)
+getAuxiliaryBias(ua::UpdatingAlgorithmOnBipartiteGraph)::AbstractVector{<:AbstractFloat} = ua.spinSystem.auxiliaryBias
+setAuxiliaryBias(ua::UpdatingAlgorithmOnBipartiteGraph, auxiliaryBias::AbstractVector{<:AbstractFloat}) = (ua.spinSystem.auxiliaryBias = auxiliaryBias)
 
 function calcEnergy(spinSystem::SpinSystemOnBipartiteGraph)::AbstractFloat
     return -spinSystem.spinConfiguration' * spinSystem.couplingCoefficients * spinSystem.hiddenLayer
@@ -142,20 +142,32 @@ function calcEnergy(spinSystem::SpinSystemOnBipartiteGraph)::AbstractFloat
         - spinSystem.auxiliaryBias' * spinSystem.hiddenLayer
 end
 
-calcEnergy(s::UpdatingAlgorithmOnBipartiteGraph)::AbstractFloat = calcEnergy(s.spinSystem)
+calcEnergy(ua::UpdatingAlgorithmOnBipartiteGraph)::AbstractFloat = calcEnergy(ua.spinSystem)
 
 function calcLocalMagneticField(spinSystem::SpinSystemOnBipartiteGraph)::AbstractVector{AbstractFloat}
     return spinSystem.couplingCoefficients * spinSystem.hiddenLayer
         + spinSystem.externalMagneticField
 end
 
-calcLocalMagneticField(s::UpdatingAlgorithmOnBipartiteGraph)::AbstractVector{AbstractFloat} = calcLocalMagneticField(s.spinSystem)
+calcLocalMagneticField(ua::UpdatingAlgorithmOnBipartiteGraph)::AbstractVector{AbstractFloat} = calcLocalMagneticField(ua.spinSystem)
 
 function calcLocalAuxiliaryBias(spinSystem::SpinSystemOnBipartiteGraph)::AbstractVector{AbstractFloat}
     return spinSystem.couplingCoefficients' * spinSystem.spinConfiguration
         + spinSystem.auxiliaryBias
 end
 
-calcLocalAuxiliaryBias(s::UpdatingAlgorithmOnBipartiteGraph)::AbstractVector{AbstractFloat} = calcLocalAuxiliaryBias(s.spinSystem)
+calcLocalAuxiliaryBias(ua::UpdatingAlgorithmOnBipartiteGraph)::AbstractVector{AbstractFloat} = calcLocalAuxiliaryBias(ua.spinSystem)
+
+################ Mathematical functions ################
+
+function heaviside(x::T; c::T=one(T))::T where {T<:Number}
+    if x > zero(T)
+        one(T)
+    elseif x < zero(T)
+        zero(T)
+    else
+        c
+    end
+end
 
 end

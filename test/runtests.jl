@@ -17,16 +17,16 @@ function runAnnealer(updatingAlgorithm)
 end
 
 @testset "SingleSpinFlip" begin
-    s = SpinSystems.SpinSystem([-1, +1], sparse([0 1; 1 0]), [0, 0])
-    @test SpinSystems.calcEnergy(s) == 1.0
-    @test runAnnealer(SingleSpinFlip.AsynchronousHopfieldNetwork(deepcopy(s))) ∈ [[1, 1], [-1, -1]]
-    @test runAnnealer(SingleSpinFlip.GlauberDynamics(deepcopy(s), 10.0)) ∈ [[1, 1], [-1, -1]]
-    @test runAnnealer(SingleSpinFlip.MetropolisMethod(deepcopy(s), 10.0)) ∈ [[1, 1], [-1, -1]]
+    ss = SpinSystems.SpinSystem([-1, +1], sparse([0 1; 1 0]), [0, 0])
+    @test SpinSystems.calcEnergy(ss) == 1.0
+    @test runAnnealer(SingleSpinFlip.AsynchronousHopfieldNetwork(deepcopy(ss))) ∈ [[1, 1], [-1, -1]]
+    @test runAnnealer(SingleSpinFlip.GlauberDynamics(deepcopy(ss), 10.0)) ∈ [[1, 1], [-1, -1]]
+    @test runAnnealer(SingleSpinFlip.MetropolisMethod(deepcopy(ss), 10.0)) ∈ [[1, 1], [-1, -1]]
 end
 
 @testset "OnBipartiteGraph" begin
-    s = OnBipartiteGraph.SpinSystemOnBipartiteGraph([-1, +1], [-1, +1, -1], sparse([1 1 1; 1 1 1]), [0, 0], [0, 0, 0])
-    @test OnBipartiteGraph.calcEnergy(s) == 0.0
-    @test runAnnealer(OnBipartiteGraph.StochasticCellularAutomata(deepcopy(s), 10.0)) ∈ [[1, 1], [-1, -1]]
-    @test runAnnealer(OnBipartiteGraph.MomentumAnnealing(deepcopy(s), 10.0)) ∈ [[1, 1], [-1, -1]]
+    ss = OnBipartiteGraph.SpinSystemOnBipartiteGraph([-1, +1], [-1, +1, -1], sparse([1 1 1; 1 1 1]), [0, 0], [0, 0, 0])
+    @test OnBipartiteGraph.calcEnergy(ss) == 0.0
+    @test runAnnealer(OnBipartiteGraph.StochasticCellularAutomata(deepcopy(ss), 10.0)) ∈ [[1, 1], [-1, -1]]
+    @test runAnnealer(OnBipartiteGraph.MomentumAnnealing(deepcopy(ss), 10.0)) ∈ [[1, 1], [-1, -1]]
 end

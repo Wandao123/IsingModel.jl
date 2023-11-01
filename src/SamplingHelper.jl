@@ -9,20 +9,20 @@ using ..MultiSpinFlip
 using ..OnBipartiteGraph
 
 """
-    update!(s::SingleSpinUpdatingAlgorithm; [rng=default_rng()])
+    update!(ua::SingleSpinUpdatingAlgorithm; [rng=default_rng()])
 
-Update a spin of `s.spinSystem.spinConfiguration`.
+Update a spin of `ua.spinSystem.spinConfiguration`.
 `rng` is used to get a random number when the updating algorithm depends on randomness.
-This method forwards `s` to another `update!(s, updatedNode, fluctuation)` method with substituting default values into `updatedNode` and `fluctuation`.
+This method forwards `ua` to another `update!(ua, updatedNode, fluctuation)` method with substituting default values into `updatedNode` and `fluctuation`.
 
 # Arguments
-- `s::SingleSpinUpdatingAlgorithm`: A spin system with parameters.
+- `ua::SingleSpinUpdatingAlgorithm`: A spin system with parameters.
 - `rng::AbstractRNG`: A random number generator.
 """
-function update!(s::SingleSpinFlip.SingleSpinUpdatingAlgorithm; rng::AbstractRNG=Random.default_rng())
-    updatedNode = rand(rng, eachindex(getSpinConfiguration(s)))
-    fluctuation = rand(rng, s.distribution)
-    SingleSpinFlip.update!(s, updatedNode, fluctuation)
+function update!(ua::SingleSpinFlip.SingleSpinUpdatingAlgorithm; rng::AbstractRNG=Random.default_rng())
+    updatedNode = rand(rng, eachindex(getSpinConfiguration(ua)))
+    fluctuation = rand(rng, ua.distribution)
+    SingleSpinFlip.update!(ua, updatedNode, fluctuation)
 end
 
 function makeSampler!(updatingAlgorithm::SingleSpinFlip.SingleSpinUpdatingAlgorithm, maxMCSteps::Integer; annealingSchedule::Function=n -> updatingAlgorithm.temperature, rng::AbstractRNG=Random.default_rng())::Channel{SpinSystems.UpdatingAlgorithm}
@@ -51,19 +51,19 @@ function makeSampler!(updatingAlgorithm::SingleSpinFlip.SingleSpinUpdatingAlgori
 end
 
 """
-    update!(s::MultiSpinUpdatingAlgorithm; [rng=default_rng()])
+    update!(ua::MultiSpinUpdatingAlgorithm; [rng=default_rng()])
 
-Update a spin of `s.spinSystem.spinConfiguration`.
+Update a spin of `ua.spinSystem.spinConfiguration`.
 `rng` is used to get a random number when the updating algorithm depends on randomness.
-This method forwards `s` to another `update!(s, updatedNode, fluctuation)` method with substituting default values into `updatedNode` and `fluctuation`.
+This method forwards `ua` to another `update!(ua, updatedNode, fluctuation)` method with substituting default values into `updatedNode` and `fluctuation`.
 
 # Arguments
-- `s::MultiSpinUpdatingAlgorithm`: A spin system with parameters.
+- `ua::MultiSpinUpdatingAlgorithm`: A spin system with parameters.
 - `rng::AbstractRNG`: A random number generator.
 """
-function update!(s::MultiSpinFlip.MultiSpinUpdatingAlgorithm; rng::AbstractRNG=Random.default_rng())
-    fluctuation = rand(rng, s.distribution)
-    MultiSpinFlip.update!(s, fluctuation)
+function update!(ua::MultiSpinFlip.MultiSpinUpdatingAlgorithm; rng::AbstractRNG=Random.default_rng())
+    fluctuation = rand(rng, ua.distribution)
+    MultiSpinFlip.update!(ua, fluctuation)
 end
 
 function makeSampler!(updatingAlgorithm::MultiSpinFlip.MultiSpinUpdatingAlgorithm, maxMCSteps::Integer, annealingSchedule::Function=n -> updatingAlgorithm.temperature; rng::AbstractRNG=Random.default_rng())::Channel{SpinSystems.UpdatingAlgorithm}
@@ -91,20 +91,20 @@ function makeSampler!(updatingAlgorithm::MultiSpinFlip.MultiSpinUpdatingAlgorith
 end
 
 """
-    update!(s::UpdatingAlgorithmOnBipartiteGraph; [rng=default_rng()])
+    update!(ua::UpdatingAlgorithmOnBipartiteGraph; [rng=default_rng()])
 
-Update a spin of `s.spinSystem.spinConfiguration`.
+Update a spin of `ua.spinSystem.spinConfiguration`.
 `rng` is used to get a random number when the updating algorithm depends on randomness.
-This method forwards `s` to another `update!(s, updatedNode, fluctuation)` method with substituting default values into `updatedNode` and `fluctuation`.
+This method forwards `ua` to another `update!(ua, updatedNode, fluctuation)` method with substituting default values into `updatedNode` and `fluctuation`.
 
 # Arguments
-- `s::UpdatingAlgorithmOnBipartiteGraph`: A spin system on a bipartite graph with parameters.
+- `ua::UpdatingAlgorithmOnBipartiteGraph`: A spin system on a bipartite graph with parameters.
 - `rng::AbstractRNG`: A random number generator.
 """
-function update!(s::OnBipartiteGraph.UpdatingAlgorithmOnBipartiteGraph; rng::AbstractRNG=Random.default_rng())
-    fluctuationForSpinConfiguration = rand(rng, s.distribution, length(s.spinSystem.spinConfiguration))
-    fluctuationForHiddenLayer = rand(rng, s.distribution, length(s.spinSystem.hiddenLayer))
-    OnBipartiteGraph.update!(s, fluctuationForSpinConfiguration, fluctuationForHiddenLayer)
+function update!(ua::OnBipartiteGraph.UpdatingAlgorithmOnBipartiteGraph; rng::AbstractRNG=Random.default_rng())
+    fluctuationForSpinConfiguration = rand(rng, ua.distribution, length(ua.spinSystem.spinConfiguration))
+    fluctuationForHiddenLayer = rand(rng, ua.distribution, length(ua.spinSystem.hiddenLayer))
+    OnBipartiteGraph.update!(ua, fluctuationForSpinConfiguration, fluctuationForHiddenLayer)
 end
 
 function makeSampler!(updatingAlgorithm::OnBipartiteGraph.UpdatingAlgorithmOnBipartiteGraph, maxMCSteps::Integer; annealingSchedule::Function=n -> updatingAlgorithm.temperature, rng::AbstractRNG=Random.default_rng())::Channel{SpinSystems.UpdatingAlgorithmOnBipartiteGraph}
