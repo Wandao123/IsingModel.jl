@@ -14,8 +14,8 @@ begin
 	Pkg.instantiate()
 
 	using IsingModel
-    using IsingModel.SpinSystems: calcEnergy
-    using IsingModel.SamplingHelper: makeSampler!
+	using IsingModel.SpinSystems: calcEnergy
+	using IsingModel.SamplingHelper: makeSampler!
 	using BenchmarkTools
 	using Distributions
 	import Graphs
@@ -92,20 +92,20 @@ end
 
 # ╔═╡ 5caf6d8b-8e0a-4e49-9ada-d7a403ca04de
 begin
-    const MAX_STEPS = N^2 ÷ 2
-    const INITIAL_TEMPERATURE = float(MAX_STEPS)
+	const MAX_STEPS = N^2 ÷ 2
+	const INITIAL_TEMPERATURE = float(MAX_STEPS)
 	const FINAL_TEMPERATURE = 0.0
 
 	#annealingSchedule(n) = (FINAL_TEMPERATURE - INITIAL_TEMPERATURE) / MAX_STEPS * n + INITIAL_TEMPERATURE
 	annealingSchedule(n) = INITIAL_TEMPERATURE ^ (-n / MAX_STEPS)
 
-    function runAnnealer(
-        Algorithm::Type{<:SpinSystems.UpdatingAlgorithm},
-        spinSystem::SpinSystems.SpinSystem,
-        INITIAL_TEMPERATURE::Float64=-1.0
-    )::Vector{Float64}
-        if INITIAL_TEMPERATURE < 0.0
-            return map(
+	function runAnnealer(
+		Algorithm::Type{<:SpinSystems.UpdatingAlgorithm},
+		spinSystem::SpinSystems.SpinSystem,
+		INITIAL_TEMPERATURE::Float64=-1.0
+	)::Vector{Float64}
+		if INITIAL_TEMPERATURE < 0.0
+			return map(
 				calcEnergy,
 				makeSampler!(
 					Algorithm(deepcopy(spinSystem)),
@@ -113,8 +113,8 @@ begin
 					annealingSchedule=annealingSchedule
 				)
 			)
-        else
-            return map(
+		else
+			return map(
 				calcEnergy,
 				makeSampler!(
 					Algorithm(deepcopy(spinSystem), INITIAL_TEMPERATURE),
@@ -122,15 +122,15 @@ begin
 					annealingSchedule=annealingSchedule
 				)
 			)
-        end
-    end
+		end
+	end
 
-    function runAnnealer(
-        Algorithm::Type{<:SpinSystems.UpdatingAlgorithmOnBipartiteGraph},
-        spinSystem::SpinSystems.SpinSystemOnBipartiteGraph,
-        INITIAL_TEMPERATURE::Float64=-1.0
-    )::Vector{Float64}
-        return map(
+	function runAnnealer(
+		Algorithm::Type{<:SpinSystems.UpdatingAlgorithmOnBipartiteGraph},
+		spinSystem::SpinSystems.SpinSystemOnBipartiteGraph,
+		INITIAL_TEMPERATURE::Float64=-1.0
+	)::Vector{Float64}
+		return map(
 			a -> calcEnergy(a) + 0.5 * pinningParameter * N,
 			makeSampler!(
 				Algorithm(deepcopy(spinSystem), INITIAL_TEMPERATURE),
@@ -138,7 +138,7 @@ begin
 				annealingSchedule=annealingSchedule
 			)
 		)
-    end
+	end
 end
 
 # ╔═╡ b14cb2a9-d69f-48eb-a268-6bca0ff91675
@@ -150,8 +150,8 @@ begin
 	plot!(runAnnealer(SingleSpinFlip.AsynchronousHopfieldNetwork, spinSystem), label="Hopfield")
 	plot!(runAnnealer(SingleSpinFlip.GlauberDynamics, spinSystem, INITIAL_TEMPERATURE), label="Glauber")
 	plot!(runAnnealer(SingleSpinFlip.MetropolisMethod, spinSystem, INITIAL_TEMPERATURE), label="Metropolis")
-    plot!(runAnnealer(OnBipartiteGraph.StochasticCellularAutomata, spinSystemOnBipartiteGraph, INITIAL_TEMPERATURE), label="SCA")
-    plot!(runAnnealer(OnBipartiteGraph.MomentumAnnealing, spinSystemOnBipartiteGraph, INITIAL_TEMPERATURE), label="MA")
+	plot!(runAnnealer(OnBipartiteGraph.StochasticCellularAutomata, spinSystemOnBipartiteGraph, INITIAL_TEMPERATURE), label="SCA")
+	plot!(runAnnealer(OnBipartiteGraph.MomentumAnnealing, spinSystemOnBipartiteGraph, INITIAL_TEMPERATURE), label="MA")
 end
 
 # ╔═╡ eb0ec036-1315-4c36-b0e2-55e60081e2c5
