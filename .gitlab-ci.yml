@@ -21,13 +21,13 @@ Julia 1.3:
   extends:
     - .script
     - .coverage
-Julia 1.9:
-  image: julia:1.9
+Julia 1.10:
+  image: julia:1.10
   extends:
     - .script
     - .coverage
 pages:
-  image: julia:1.9
+  image: julia:1.10
   stage: deploy
   script:
     - apt-get update -qq && apt-get install -y git  # needed by Documenter
@@ -48,7 +48,7 @@ pages:
   only:
     - main
 CompatHelper:
-  image: julia:1.9 # Set to the Julia version you want to use
+  image: julia:1.10 # Set to the Julia version you want to use
   stage: compat # You can place this in any stage that makes sense for your setup
   before_script:
     - apt-get update -qq && apt-get install -y git
