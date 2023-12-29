@@ -5,6 +5,7 @@ version = "1.0.0-DEV"
 
 [deps]
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+CompatHelper = "aa819f21-2bde-4658-8897-bab36330d9b7"
 Conda = "8f4d0f93-b110-5947-807f-2305c1781a2d"
 Coverage = "a2441757-f6aa-5fb2-8edb-039e3f45d037"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
