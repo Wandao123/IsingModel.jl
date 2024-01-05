@@ -9,21 +9,5 @@
 
 ### Demonstration
 
-You can see a demonstration in [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/Wandao123/IsingModel.jl/HEAD?labpath=demo.ipynb).
+You can see a demonstration in [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/Wandao123/IsingModel.jl/main?labpath=demo.ipynb).
 It may take some time.
-
-### Generating adjacency matrices by Python's NetworkX library
-
-Before running this demonstration, please install python libraries via REPL:
-```
-julia> using Conda
-julia> Conda.add("scipy")
-julia> Conda.add("networkx")
-```
-Depending on your OS, you may be required to chenge the path to Python interpreter and build PyCall.
-```
-julia> ENV["PYTHON"] = ENV["HOME"] * "/.julia/conda/3/x86_64/bin/python3"
-julia> using Pkg
-julia> Pkg.build("PyCall")
-```
-See also [the README file of PyCall](https://github.com/JuliaPy/PyCall.jl).
